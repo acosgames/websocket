@@ -4,11 +4,17 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "start": "nodemon --inspect=10004 --watch . --watch ../fsg-shared/ --ignore ./sessions/ index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "pson": "^2.0.0"
+    "bson": "^4.2.3",
+    "cookie": "^0.4.1",
+    "fsg-shared": "file:../fsg-shared",
+    "pako": "^2.0.3",
+    "pson": "^2.0.0",
+    "uWebSockets.js": "uNetworking/uWebSockets.js#v18.14.0"
   }
 }
