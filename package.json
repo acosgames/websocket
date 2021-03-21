@@ -5,6 +5,9 @@
   "main": "index.js",
   "scripts": {
     "start": "nodemon --inspect=10004 --watch . --watch ../fsg-shared/ --ignore ./sessions/ index.js",
+
+    "wscluster": "nodemon --inspect=10004 --watch . --watch ../fsg-shared/ --ignore ./sessions/ wscluster.js",
+    "wsnode": "nodemon --inspect=10005 --watch . --watch ../fsg-shared/ --ignore ./sessions/ wsnode.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
@@ -15,6 +18,7 @@
     "fsg-shared": "file:../fsg-shared",
     "pako": "^2.0.3",
     "pson": "^2.0.0",
-    "uWebSockets.js": "uNetworking/uWebSockets.js#v18.14.0"
+    "uWebSockets.js": "uNetworking/uWebSockets.js#v18.14.0",
+    "websocket": "^1.0.33"
   }
 }

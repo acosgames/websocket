@@ -2,20 +2,61 @@ const { v4: uuidv4 } = require('uuid');
 const cookie = require('cookie')
 const PersonService = require('fsg-shared/services/person');
 const persons = new PersonService();
+const credutil = require('fsg-shared/util/credentials');
 
 //use this class to implement a fancy authentication
 class Authentication {
-    constructor() {
+    constructor(credentials) {
+        this.credentials = credentials || credutil();
         this.users = {};
         this.wss = null;
     }
 
     attach(WSServer) {
         this.wss = WSServer;
-        this.wss.onUpgrade(this.onWSUpgrade);
-        this.wss.onOpen(this.onWSOpen);
     }
 
+    async upgrade(res, req, context, serverType) {
+        res.onAborted(() => {
+            res.aborted = true;
+        });
+
+        let user = null;
+        try {
+
+            let _logged = true;
+
+            if (!serverType) {
+                user = await this.check(res, req, context);
+
+                if (!user) {
+                    res.writeStatus('401');
+                    res.end();
+                    return;
+                }
+                _logged = user ? true : false;
+                serverType = 'user';
+            }
+
+            let key = req.getHeader('sec-websocket-key');
+            let protocol = req.getHeader('sec-websocket-protocol');
+            let ext = req.getHeader('sec-websocket-extensions');
+
+            res.upgrade(
+                { _logged, server: serverType },
+                key, protocol, ext,
+                context
+            )
+
+            console.log("finished upgrade");
+        }
+        catch (e) {
+            console.error(e);
+            if (!res.aborted) {
+                res.end();
+            }
+        }
+    }
     async check(res, req, context) {
         const _cookie = cookie.parse(req.getHeader('cookie'))
         console.log(_cookie);
@@ -27,7 +68,7 @@ class Authentication {
                 console.log(k + "=" + v);
             });
 
-            let user = { apikey: req.getHeader('sec-websocket-protocol') };
+            let user = { apikey };
             user = await persons.findUser(user);
 
             return user;
@@ -39,14 +80,7 @@ class Authentication {
         return null;
     }
 
-    onWSOpen(ws) {
-        // disconnect if not logged
-        if (!ws._logged) {
-            ws.end()
-            console.log('unauthorized', 'https://m.youtube.com/watch?v=OP30okjpCko')
-            return
-        }
-    }
+
 
 
     generateAPIKey() {

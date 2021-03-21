@@ -5,11 +5,21 @@ const events = require('events');
 const Authentication = require('./authentication');
 const { encode, decode } = require('fsg-shared/util/encoder')
 
-class WSServer {
+const InstanceLocalService = require('fsg-shared/services/instancelocal');
+const local = new InstanceLocalService();
+
+const credutil = require('fsg-shared/util/credentials');
+const { getLocalAddr } = require('fsg-shared/util/address');
+
+
+
+class WSCluster {
 
     constructor(options) {
+        this.credentials = credutil();
 
         this.evt = new events.EventEmitter();
+        this.port = process.env.PORT || this.credentials.platform.wscluster.port;
 
         this.options = options || {
             idleTimeout: 30,
@@ -20,6 +30,22 @@ class WSServer {
             open: this.open.bind(this),
             message: this.message.bind(this),
         }
+
+        this.register();
+    }
+
+
+    async register() {
+
+        let params = {
+            public_addr: this.port,
+            private_addr: getLocalAddr() + ':' + this.credentials.platform.wscluster.port,
+            hostname: "wscluster",
+            zone: 0,
+            instance_type: 2
+        }
+        let server = await local.register(params);
+        console.log("WS Cluster registered: ", server);
     }
 
     connect(options) {
@@ -27,28 +53,26 @@ class WSServer {
 
         this.app = uws.ws('/*', this.options)
             .get('/*', this.anyRoute.bind(this))
-            .listen(9001, this.onListen.bind(this));
+            .listen(this.port, this.onListen.bind(this));
         return this.app;
     }
 
 
-    onOpen(callback) {
-        this.evt.addListener('open', callback);
-    }
 
     open(ws) {
+
+        if (!ws._logged) {
+            ws.end()
+            console.log('unauthorized', 'https://m.youtube.com/watch?v=OP30okjpCko')
+            return
+        }
+
+        console.log("Server connected: ", ws);
         ws.subscribe('g/1234');
         ws.subscribe('g/1234/joe');
 
-        this.evt.emit('open', ws);
     }
 
-
-    onMessage(callback) {
-
-
-        this.evt.addListener('message', callback);
-    }
 
     message(ws, message, isBinary) {
         let msg = decode(message);
@@ -57,53 +81,25 @@ class WSServer {
         this.app.publish('g/1234', message, isBinary);
         this.app.publish('g/1234', message, isBinary);
 
-        this.evt.emit('message', ws, msg, isBinary);
     }
 
-
-    onUpgrade(callback) {
-        this.upgradeCallback = callback;
-        // this.evt.addListener('upgrade', callback);
-    }
 
     async upgrade(res, req, context) {
-        res.onAborted(() => {
-            res.aborted = true;
-        });
 
-        let user = null;
-        try {
-
-            let key = req.getHeader('sec-websocket-key');
-            let protocol = req.getHeader('sec-websocket-protocol');
-            let ext = req.getHeader('sec-websocket-extensions');
-
-            user = await Authentication.check(res, req, context);
-
-            if (!user) {
-                res.writeStatus('401');
-                res.end();
-                return;
-            }
-            let _logged = user ? true : false;
-
-
-            res.upgrade(
-                { _logged },
-                key, protocol, ext,
-
-
-                context
-            )
-
-            console.log("finished upgrade");
+        let apikey = req.getHeader('sec-websocket-protocol');
+        if (apikey == this.credentials.platform.gameserver.gamekey) {
+            Authentication.upgrade(res, req, context, 'gameserver');
         }
-        catch (e) {
-            console.error(e);
-            if (!res.aborted) {
-                res.end();
-            }
+        else if (apikey == this.credentials.platform.wsnode.nodekey) {
+            Authentication.upgrade(res, req, context, 'wsnode');
+
         }
+        else {
+            res.writeStatus('401');
+            res.end();
+            return;
+        }
+
 
     }
 
@@ -134,4 +130,4 @@ class WSServer {
     }
 }
 
-module.exports = new WSServer();
+module.exports = new WSCluster();
