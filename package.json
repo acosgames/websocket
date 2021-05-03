@@ -5,9 +5,8 @@
   "main": "index.js",
   "scripts": {
     "start": "nodemon --inspect=10004 --watch . --watch ../fsg-shared/ --ignore ./sessions/ index.js",
-
-    "wscluster": "nodemon --inspect=10004 --watch . --watch ../fsg-shared/ --ignore ./sessions/ wscluster.js",
-    "wsnode": "nodemon --inspect=10005 --watch . --watch ../fsg-shared/ --ignore ./sessions/ wsnode.js",
+    "dev-wscluster": "nodemon --inspect=10004 --watch . --watch ../fsg-shared/ --ignore ./sessions/ wscluster.js",
+    "dev-node": "nodemon --inspect=10005 --watch . --watch ../fsg-shared/ --ignore ./sessions/ wsnode.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",

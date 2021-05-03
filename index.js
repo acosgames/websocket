@@ -1,6 +1,6 @@
 
 
-const WSCluster = require('./src/core/WSCluster');
+const WSCluster = require('./src/unused/WSCluster');
 
 WSCluster.connect();
 

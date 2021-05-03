@@ -12,7 +12,9 @@ const { GeneralError } = require('fsg-shared/util/errorhandler');
 const credutil = require('fsg-shared/util/credentials');
 const { getLocalAddr } = require('fsg-shared/util/address');
 
-const WSClient = require('./WSClient');
+const RedisService = require('fsg-shared/services/redis');
+
+// const WSClient = require('./WSClient');
 
 class WSNode {
 
@@ -21,6 +23,8 @@ class WSNode {
 
         this.evt = new events.EventEmitter();
         this.port = process.env.PORT || this.credentials.platform.wsnode.port;
+        this.redis = new RedisService()
+
         this.server = {};
         this.cluster = null;
 
@@ -45,6 +49,10 @@ class WSNode {
 
         this.app = uws.ws('/*', this.options)
             .get('/*', this.anyRoute.bind(this))
+            // .get('/player/add/*', this.addPlayer.bind(this))
+            // .get('/player/redirect/*', this.redirectPlayer.bind(this))
+            // .get('/game/*', this.addGame.bind(this))
+
             .listen(this.port, this.onListen.bind(this));
         return this.app;
     }
@@ -67,7 +75,7 @@ class WSNode {
 
         await this.register();
 
-        if (!this.server.clusters) {
+        if (!this.server || !this.server.clusters) {
             setTimeout(() => { this.connect(options) }, this.credentials.platform.retryTime);
             return;
         }
@@ -75,35 +83,35 @@ class WSNode {
         let clusters = this.server.clusters;
         this.cluster = clusters[0];
 
-        let addr = this.cluster.private_addr;
+        let pubAddr = this.cluster.public_addr;
+        let privAddr = this.cluster.private_addr;
 
-        await WSClient.connect(
-            addr,
-            this.credentials.platform.wsnode.nodekey,
-            {
-                cbOpen: this.onClusterOpen.bind(this),
-                cbError: this.onClusterError.bind(this),
-                cbMessage: this.onClusterMessage.bind(this),
-                cbClose: this.onClusterClose.bind(this)
-            }
-        )
+        let parts = pubAddr.split(":");
+        let host = parts[0];
+        let port = parts[1];
+        let redisOptions = {
+            host, port
+        }
+
+        this.redis.connect(redisOptions);
+
+        // this.redis.subscribe('eGame/1234', (channel, value) => {
+        //     console.log("OnEvent: ", channel, value);
+        // });
+
+        // this.redis.publish('eGame/1234', { test: 1234444 });
+        // await WSClient.connect(
+        //     addr,
+        //     this.credentials.platform.wsnode.nodekey,
+        //     {
+        //         cbOpen: this.onClusterOpen.bind(this),
+        //         cbError: this.onClusterError.bind(this),
+        //         cbMessage: this.onClusterMessage.bind(this),
+        //         cbClose: this.onClusterClose.bind(this)
+        //     }
+        // )
     }
 
-    async onClusterOpen(client, event) {
-
-    }
-
-    async onClusterClose(client, event) {
-        console.log(event);
-    }
-
-    async onClusterError(client, error) {
-        console.log(error);
-    }
-
-    async onClusterMessage(client, error) {
-
-    }
 
     onClientClose(ws, code, message) {
         console.log(ws, code, message);
@@ -120,7 +128,6 @@ class WSNode {
         console.log("User connected: ", ws);
         ws.subscribe('g/1234');
         ws.subscribe('g/1234/joe');
-
     }
 
 
@@ -139,6 +146,28 @@ class WSNode {
         Authentication.upgrade(res, req, context, true);
     }
 
+    verifyAPIKey(res, req) {
+        let apikey = req.getHeader('x-api-key');
+        if (apikey != '6C312A606D9A4CEBADB174F5FAE31A28') {
+            res.end('Not valid');
+            return false;
+        }
+
+        return true;
+    }
+
+    addPlayer(res, req) {
+        if (!this.verifyAPIKey(res, req))
+            return;
+    }
+    redirectPlayer(res, req) {
+        if (!this.verifyAPIKey(res, req))
+            return;
+    }
+    addGame(res, req) {
+        if (!this.verifyAPIKey(res, req))
+            return;
+    }
 
     anyRoute(res, req) {
         console.log(req);

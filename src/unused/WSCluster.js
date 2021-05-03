@@ -2,7 +2,7 @@
 const UWSjs = require('uWebSockets.js/uws');
 const uws = UWSjs.App();
 const events = require('events');
-const Authentication = require('./authentication');
+const Authentication = require('../core/authentication');
 const { encode, decode } = require('fsg-shared/util/encoder')
 
 const InstanceLocalService = require('fsg-shared/services/instancelocal');
