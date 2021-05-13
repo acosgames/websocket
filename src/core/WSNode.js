@@ -14,6 +14,9 @@ const { getLocalAddr } = require('fsg-shared/util/address');
 
 const RedisService = require('fsg-shared/services/redis');
 
+const RoomService = require('fsg-shared/services/room');
+const r = new RoomService();
+
 // const WSClient = require('./WSClient');
 
 class WSNode {
@@ -23,10 +26,15 @@ class WSNode {
 
         this.evt = new events.EventEmitter();
         this.port = process.env.PORT || this.credentials.platform.wsnode.port;
-        this.redis = new RedisService()
+        this.redis = RedisService
 
         this.server = {};
         this.cluster = null;
+        this.options = options;
+    }
+
+    async connect(options) {
+        options = options || this.options
 
         this.options = options || {
             idleTimeout: 30,
@@ -39,13 +47,7 @@ class WSNode {
             close: this.onClientClose.bind(this)
         }
 
-
-    }
-
-    async connect(options) {
-        options = options || this.options
-
-        await this.connectToCluster();
+        await this.connectToCluster(options);
 
         this.app = uws.ws('/*', this.options)
             .get('/*', this.anyRoute.bind(this))
@@ -71,7 +73,7 @@ class WSNode {
         return this.server;
     }
 
-    async connectToCluster() {
+    async connectToCluster(options) {
 
         await this.register();
 
@@ -126,19 +128,38 @@ class WSNode {
         }
 
         console.log("User connected: ", ws);
-        ws.subscribe('g/1234');
-        ws.subscribe('g/1234/joe');
+        // ws.subscribe('g/1234');
+        // ws.subscribe('g/1234/joe');
     }
 
 
-    onClientMessage(ws, message, isBinary) {
+    async onClientMessage(ws, message, isBinary) {
         let msg = decode(message);
         console.log(msg);
 
-        this.app.publish('g/1234', message, isBinary);
-        this.app.publish('g/1234', message, isBinary);
+        if (msg.join) {
+            await this.requestJoin(ws, msg);
+        }
+        // this.app.publish('g/1234', message, isBinary);
+        // this.app.publish('g/1234', message, isBinary);
 
     }
+
+
+    async requestJoin(ws, msg) {
+        let room = await r.findAnyRoom(msg.join);
+        console.log(room);
+
+        let joined = await r.joinRoom(ws.user, room);
+        ws.subscribe('g/' + room.room_slug);
+
+        let user = {
+            id: ws.user.id,
+            displayname: ws.user.displayname
+        }
+        ws.publish('g/' + room_slug + '/join', user);
+    }
+
 
 
     async upgrade(res, req, context) {

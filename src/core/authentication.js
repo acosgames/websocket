@@ -26,25 +26,28 @@ class Authentication {
 
             let _logged = true;
 
-            if (!serverType) {
-                user = await this.check(res, req, context);
-
-                if (!user) {
-                    res.writeStatus('401');
-                    res.end();
-                    return;
-                }
-                _logged = user ? true : false;
-                serverType = 'user';
-            }
-
             let key = req.getHeader('sec-websocket-key');
-            let protocol = req.getHeader('sec-websocket-protocol');
+            let apikey = req.getHeader('sec-websocket-protocol');
             let ext = req.getHeader('sec-websocket-extensions');
 
+            //if (!serverType) {
+            user = await this.check(apikey);
+
+            if (!user) {
+                res.writeStatus('401');
+                res.end();
+                return;
+            }
+            _logged = user ? true : false;
+            //serverType = 'user';
+            //this.users[user.apikey] = user;
+            //}
+
+
+
             res.upgrade(
-                { _logged, server: serverType },
-                key, protocol, ext,
+                { _logged, user },
+                key, apikey, ext,
                 context
             )
 
@@ -57,16 +60,15 @@ class Authentication {
             }
         }
     }
-    async check(res, req, context) {
-        const _cookie = cookie.parse(req.getHeader('cookie'))
-        console.log(_cookie);
+
+    async check(apikey) {
+        // const _cookie = cookie.parse(req.getHeader('cookie'))
+        // console.log(_cookie);
         // validate the cookie somehow
         // and set _logged true or false
 
         try {
-            req.forEach((k, v) => {
-                console.log(k + "=" + v);
-            });
+
 
             let user = { apikey };
             user = await persons.findUser(user);
