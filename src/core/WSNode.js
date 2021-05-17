@@ -13,11 +13,13 @@ const credutil = require('fsg-shared/util/credentials');
 const { getLocalAddr } = require('fsg-shared/util/address');
 
 const RedisService = require('fsg-shared/services/redis');
+const rabbitmq = require('fsg-shared/services/rabbitmq');
+
+const GameService = require('fsg-shared/services/game');
+const g = new GameService();
 
 const RoomService = require('fsg-shared/services/room');
 const r = new RoomService();
-
-// const WSClient = require('./WSClient');
 
 class WSNode {
 
@@ -26,7 +28,8 @@ class WSNode {
 
         this.evt = new events.EventEmitter();
         this.port = process.env.PORT || this.credentials.platform.wsnode.port;
-        this.redis = RedisService
+        this.redis = RedisService;
+        this.mq = rabbitmq;
 
         this.server = {};
         this.cluster = null;
@@ -47,7 +50,9 @@ class WSNode {
             close: this.onClientClose.bind(this)
         }
 
-        await this.connectToCluster(options);
+        await this.register();
+        await this.connectToRedis(options);
+        await this.connectToMQ(options);
 
         this.app = uws.ws('/*', this.options)
             .get('/*', this.anyRoute.bind(this))
@@ -73,21 +78,48 @@ class WSNode {
         return this.server;
     }
 
-    async connectToCluster(options) {
 
-        await this.register();
-
+    async connectToMQ(options) {
         if (!this.server || !this.server.clusters) {
             setTimeout(() => { this.connect(options) }, this.credentials.platform.retryTime);
             return;
         }
 
         let clusters = this.server.clusters;
-        this.cluster = clusters[0];
+        //choose a random MQ server within our zone
+        let mqs = clusters.filter(v => v.instance_type == 5);
+        this.mqCred = mqs[Math.floor(Math.random() * mqs.length)];
+        let pubAddr = this.mqCred.public_addr;
+        let privAddr = this.mqCred.private_addr;
+        let parts = pubAddr.split(":");
+        let host = parts[0];
+        let port = parts[1];
+        host = "amqp://" + this.credentials.platform.mqCluster.user + ":" + this.credentials.platform.mqCluster.pass + "@" + host + ":" + port;
+        let mqOpts = {
+            host
+        }
 
+        await this.mq.connect(mqOpts);
+
+        this.mq.subscribe('ws', 'onAction', this.onAction.bind(this));
+    }
+
+    async onAction(msg) {
+
+    }
+
+    async connectToRedis(options) {
+        if (!this.server || !this.server.clusters) {
+            setTimeout(() => { this.connect(options) }, this.credentials.platform.retryTime);
+            return;
+        }
+
+        let clusters = this.server.clusters;
+        //choose a random Redis server within our zone
+        let redises = clusters.filter(v => v.instance_type == 2);
+        this.cluster = redises[Math.floor(Math.random() * redises.length)];
         let pubAddr = this.cluster.public_addr;
         let privAddr = this.cluster.private_addr;
-
         let parts = pubAddr.split(":");
         let host = parts[0];
         let port = parts[1];
@@ -96,22 +128,6 @@ class WSNode {
         }
 
         this.redis.connect(redisOptions);
-
-        // this.redis.subscribe('eGame/1234', (channel, value) => {
-        //     console.log("OnEvent: ", channel, value);
-        // });
-
-        // this.redis.publish('eGame/1234', { test: 1234444 });
-        // await WSClient.connect(
-        //     addr,
-        //     this.credentials.platform.wsnode.nodekey,
-        //     {
-        //         cbOpen: this.onClusterOpen.bind(this),
-        //         cbError: this.onClusterError.bind(this),
-        //         cbMessage: this.onClusterMessage.bind(this),
-        //         cbClose: this.onClusterClose.bind(this)
-        //     }
-        // )
     }
 
 
@@ -137,9 +153,13 @@ class WSNode {
         let msg = decode(message);
         console.log(msg);
 
-        if (msg.join) {
-            await this.requestJoin(ws, msg);
+        switch (msg.action) {
+            case 'join': {
+                await this.requestJoin(ws, msg);
+                break;
+            }
         }
+
         // this.app.publish('g/1234', message, isBinary);
         // this.app.publish('g/1234', message, isBinary);
 
@@ -147,17 +167,35 @@ class WSNode {
 
 
     async requestJoin(ws, msg) {
-        let room = await r.findAnyRoom(msg.join);
+        let room = await r.findAnyRoom(msg.game_slug);
         console.log(room);
 
-        let joined = await r.joinRoom(ws.user, room);
-        ws.subscribe('g/' + room.room_slug);
+        //let joined = await r.joinRoom(ws.user, room);
+        // ws.subscribe('g/' + room.room_slug);
 
         let user = {
             id: ws.user.id,
             displayname: ws.user.displayname
         }
-        ws.publish('g/' + room_slug + '/join', user);
+
+        var game_slug = msg.game_slug;
+        var room_slug = msg.room_slug;
+
+        try {
+            let exists = await this.mq.checkQueue(game_slug);
+
+            if (exists) {
+                this.mq.publishQueue(queue, { action: 'join', payload: user });
+            }
+            else {
+                this.mq.publishQueue('loadGame', { game_slug })
+            }
+        }
+        catch (e) {
+            console.error(e);
+        }
+
+        // ws.publish('g/' + room_slug + '/join', user);
     }
 
 
