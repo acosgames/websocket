@@ -170,35 +170,48 @@ class WSNode {
         let room = await r.findAnyRoom(msg.game_slug);
         console.log(room);
 
+        var game_slug = msg.game_slug;
+        var room_slug = room.room_slug;
+
         //let joined = await r.joinRoom(ws.user, room);
-        // ws.subscribe('g/' + room.room_slug);
+        ws.subscribe(room_slug);
+        ws.subscribe(ws.user.id);
 
         let user = {
             id: ws.user.id,
             displayname: ws.user.displayname
         }
 
-        var game_slug = msg.game_slug;
-        var room_slug = msg.room_slug;
-
-        try {
-            let exists = await this.mq.checkQueue(game_slug);
-
-            if (exists) {
-                this.mq.publishQueue(queue, { action: 'join', payload: user });
-            }
-            else {
-                this.mq.publishQueue('loadGame', { game_slug })
-            }
+        let action = {
+            action: '_join',
+            game_slug,
+            room_slug,
+            payload: user
         }
-        catch (e) {
-            console.error(e);
-        }
+        this.forwardAction(action);
 
         // ws.publish('g/' + room_slug + '/join', user);
     }
 
+    async forwardAction(action) {
 
+        if (!action.action) {
+            console.error("Action is missing, ignoring message");
+            return;
+        }
+        var game_slug = action.game_slug;
+
+        try {
+            let exists = await this.mq.assertQueue(game_slug);
+            if (!exists) {
+                this.mq.publishQueue('loadGame', { game_slug })
+            }
+            this.mq.publishQueue(game_slug, action);
+        }
+        catch (e) {
+            console.error(e);
+        }
+    }
 
     async upgrade(res, req, context) {
 
