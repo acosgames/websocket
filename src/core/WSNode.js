@@ -121,7 +121,11 @@ class WSNode {
         let room = await r.findAnyRoom(msg.game_slug);
         console.log(room);
 
+        if( !ws.pending )
+            ws.pending = {};
         ws.pending[room.room_slug] = true;
+
+        msg.room_slug = room.room_slug;
         msg.payload = {
             displayname: ws.user.displayname
         }
@@ -196,8 +200,8 @@ class WSNode {
             return
         }
 
-        this.users[ws.user.id] = ws;
-        ws.subscribe(ws.user.id);
+        this.users[ws.user.shortid] = ws;
+        ws.subscribe(ws.user.shortid);
 
         console.log("User connected: ", ws);
     }
@@ -206,14 +210,14 @@ class WSNode {
     async onClientMessage(ws, message, isBinary) {
 
         let action = decode(message);
-        console.log(msg);
+        console.log(action);
 
         if (!action || !action.type)
             return;
 
         switch (action.type) {
             case 'join': {
-                await this.requestJoin(ws, msg);
+                await this.requestJoin(ws, action);
                 break;
             }
             default: {
@@ -222,8 +226,8 @@ class WSNode {
             }
         }
 
-        msg.userid = ws.user.id;
-        this.forwardAction(msg);
+        action.userid = ws.user.shortid;
+        this.forwardAction(action);
     }
 
 
@@ -235,6 +239,8 @@ class WSNode {
             return;
         }
         var game_slug = msg.game_slug;
+        if(!game_slug)
+            return;
 
         try {
             let exists = await this.mq.assertQueue(game_slug);
