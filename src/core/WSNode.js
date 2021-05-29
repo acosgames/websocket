@@ -2,7 +2,7 @@
 const UWSjs = require('uWebSockets.js/uws');
 const uws = UWSjs.App();
 const events = require('events');
-const Authentication = require('./authentication');
+const auth = require('./authentication');
 const { encode, decode } = require('fsg-shared/util/encoder')
 
 const InstanceLocalService = require('fsg-shared/services/instancelocal');
@@ -30,6 +30,8 @@ class WSNode {
         this.port = process.env.PORT || this.credentials.platform.wsnode.port;
         this.redis = RedisService;
         this.mq = rabbitmq;
+
+        this.users = {};
 
         this.server = {};
         this.cluster = null;
@@ -101,11 +103,63 @@ class WSNode {
 
         await this.mq.connect(mqOpts);
 
-        this.mq.subscribe('ws', 'onAction', this.onAction.bind(this));
+        this.mq.subscribe('ws', 'onGameUpdate', this.onGameUpdate.bind(this));
+        this.mq.subscribe('ws', 'onJoinResponse', this.onJoinResponse.bind(this));
     }
 
-    async onAction(msg) {
+    async onGameUpdate(msg) {
+        if (!msg.room_slug)
+            return;
 
+        let encoded = encode(msg);
+        //let isOver1kb = msgStr.length > 1000;
+
+        this.app.publish(encoded, false, false)
+    }
+
+    async requestJoin(ws, msg) {
+        let room = await r.findAnyRoom(msg.game_slug);
+        console.log(room);
+
+        ws.pending[room.room_slug] = true;
+        msg.payload = {
+            displayname: ws.user.displayname
+        }
+
+        return true;
+    }
+
+    async onJoinResponse(msg) {
+        if (!msg.userid)
+            return;
+
+        let userid = msg.payload.userid;
+        let room_slug = msg.payload.room_slug;
+
+        let ws = this.users[userid];
+        if (!ws)
+            return;
+        let pending = ws.pending[room_slug];
+        if (!pending)
+            return;
+
+        if (msg.type == 'join') {
+            ws.subscribe(room_slug);
+
+            let roomData = await this.redis.get(room_slug);
+            let encoded = encode(roomData);
+            ws.send(encoded);
+            return;
+        }
+
+        if (msg.type == 'full') {
+            let response = { type: 'gamefull', payload: { room_slug } };
+            ws.send(encode(response));
+            return;
+        }
+
+        let response = { type: 'gameinvalid', payload: { room_slug } };
+        ws.send(encode(response));
     }
 
     async connectToRedis(options) {
@@ -136,77 +190,58 @@ class WSNode {
     }
 
     onClientOpen(ws) {
-
         if (!ws._logged) {
+            console.log('unauthorized user: ', ws)
             ws.end()
-            console.log('unauthorized', 'https://m.youtube.com/watch?v=OP30okjpCko')
             return
         }
 
+        this.users[ws.user.id] = ws;
+        ws.subscribe(ws.user.id);
+
         console.log("User connected: ", ws);
-        // ws.subscribe('g/1234');
-        // ws.subscribe('g/1234/joe');
     }
 
 
     async onClientMessage(ws, message, isBinary) {
-        let msg = decode(message);
+
+        let action = decode(message);
         console.log(msg);
 
-        switch (msg.action) {
+        if (!action || !action.type)
+            return;
+
+        switch (action.type) {
             case 'join': {
                 await this.requestJoin(ws, msg);
                 break;
             }
+            default: {
+                if (!action)
+                    break;
+            }
         }
 
-        // this.app.publish('g/1234', message, isBinary);
-        // this.app.publish('g/1234', message, isBinary);
-
+        msg.userid = ws.user.id;
+        this.forwardAction(msg);
     }
 
 
-    async requestJoin(ws, msg) {
-        let room = await r.findAnyRoom(msg.game_slug);
-        console.log(room);
 
-        var game_slug = msg.game_slug;
-        var room_slug = room.room_slug;
+    async forwardAction(msg) {
 
-        //let joined = await r.joinRoom(ws.user, room);
-        ws.subscribe(room_slug);
-        ws.subscribe(ws.user.id);
-
-        let user = {
-            id: ws.user.id,
-            displayname: ws.user.displayname
-        }
-
-        let action = {
-            action: '_join',
-            game_slug,
-            room_slug,
-            payload: user
-        }
-        this.forwardAction(action);
-
-        // ws.publish('g/' + room_slug + '/join', user);
-    }
-
-    async forwardAction(action) {
-
-        if (!action.action) {
-            console.error("Action is missing, ignoring message");
+        if (!msg.type) {
+            console.error("Action is missing, ignoring message", msg);
             return;
         }
-        var game_slug = action.game_slug;
+        var game_slug = msg.game_slug;
 
         try {
             let exists = await this.mq.assertQueue(game_slug);
             if (!exists) {
                 this.mq.publishQueue('loadGame', { game_slug })
             }
-            this.mq.publishQueue(game_slug, action);
+            this.mq.publishQueue(game_slug, msg);
         }
         catch (e) {
             console.error(e);
@@ -214,8 +249,7 @@ class WSNode {
     }
 
     async upgrade(res, req, context) {
-
-        Authentication.upgrade(res, req, context, true);
+        auth.upgrade(res, req, context, true);
     }
 
     verifyAPIKey(res, req) {
