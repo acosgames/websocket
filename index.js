@@ -1,11 +1,2 @@
-
-
-const WSCluster = require('./src/unused/WSCluster');
-
-WSCluster.connect();
-
-
-
-
-// console.log('test');
-
+const WSNode = require('./src/ws');
+WSNode.connect();

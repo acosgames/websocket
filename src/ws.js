@@ -32,11 +32,183 @@ class WSNode {
         this.mq = rabbitmq;
 
         this.users = {};
+        this.rooms = {};
 
         this.server = {};
         this.cluster = null;
         this.options = options;
     }
+
+
+
+    async onRoomUpdate(msg) {
+        let room_slug = msg.meta.room_slug;
+        if (!room_slug)
+            return;
+
+        try {
+            delete msg['meta'];
+            let encoded = encode(msg);
+            //let isOver1kb = msgStr.length > 1000;
+
+
+            this.app.publish(room_slug, encoded, true, false)
+            return true;
+        }
+        catch (e) {
+            console.error(e);
+        }
+        return false;
+    }
+
+    async onJoinResponse(msg) {
+        try {
+            if (!msg.payload.id)
+                return true;
+
+            let id = msg.payload.id;
+            let room_slug = msg.payload.room_slug;
+
+            let ws = this.users[id];
+            if (!ws)
+                return true;
+            let pending = ws.pending[room_slug];
+            if (!pending) {
+
+
+                return true;
+            }
+
+
+            delete ws.pending[room_slug];
+
+            if (msg.type == 'join') {
+                ws.subscribe(room_slug);
+                let roomData = await this.redis.get(room_slug);
+                if (roomData) {
+                    let encoded = encode(msg);
+                    ws.send(encoded, true, false);
+                }
+                return true;
+            }
+
+            if (msg.type == 'full') {
+                let response = { type: 'gamefull', payload: { room_slug } };
+                ws.send(encode(response), true, false);
+                return true;
+            }
+
+            let response = { type: 'gameinvalid', payload: { room_slug } };
+            ws.send(encode(response), true, false);
+            return true
+        }
+        catch (e) {
+            console.error(e);
+            return false
+        }
+
+    }
+
+    async onClientMessage(ws, message, isBinary) {
+
+        let action = decode(message);
+        console.log(action);
+
+        if (!action || !action.type)
+            return;
+
+        let userMeta = action.meta;
+        action.meta = {};
+        action.user = { id: ws.user.shortid };
+        switch (action.type) {
+            case 'join': {
+                await this.requestJoin(ws, action);
+                break;
+            }
+            default: {
+                action.meta.room_slug = userMeta.room_slug;
+                if (!action)
+                    break;
+            }
+        }
+
+        let room = await this.getRoom(action.meta.room_slug);
+        if (!room)
+            return;
+
+        action.meta.gameid = room.gameid;
+        action.meta.game_slug = room.game_slug;
+        action.meta.maxplayers = room.maxplayers;
+        action.meta.version = room.version;
+
+        this.forwardAction(action);
+    }
+
+
+
+    async forwardAction(msg) {
+
+        if (!msg.type) {
+            console.error("Action is missing, ignoring message", msg);
+            return;
+        }
+        var game_slug = msg.meta.game_slug;
+        if (!game_slug)
+            return;
+
+        try {
+            let exists = await this.mq.assertQueue(game_slug);
+            if (!exists) {
+                this.mq.publishQueue('loadGame', msg)
+            }
+            this.mq.publishQueue(game_slug, msg);
+        }
+        catch (e) {
+            console.error(e);
+        }
+    }
+
+    async getRoom(room_slug) {
+        let room = this.rooms[room_slug];
+        if (!room)
+            room = await r.findRoom(room_slug);
+        if (!room)
+            return null;
+        return room;
+    }
+
+    async cacheRoom(room) {
+        this.rooms[room.room_slug] = room;
+    }
+
+    async cacheJoin(ws, room) {
+        ws.pending[room.room_slug] = true;
+    }
+
+    async requestJoin(ws, msg) {
+        let isBeta = msg.payload.beta;
+        let game_slug = msg.payload.game_slug;
+
+        let room = await r.findAnyRoom(game_slug, isBeta);
+        console.log(room);
+
+        if (!ws.pending)
+            ws.pending = {};
+
+        //save the room to cache
+        this.cacheRoom(room);
+
+        //track user who is pending a join 
+        this.cacheJoin(ws, room);
+
+        //these are used by the gameserver to add the user to specific room
+        msg.meta.room_slug = room.room_slug;
+        msg.user.name = ws.user.displayname
+
+        return true;
+    }
+
+
 
     async connect(options) {
         options = options || this.options
@@ -103,67 +275,8 @@ class WSNode {
 
         await this.mq.connect(mqOpts);
 
-        this.mq.subscribe('ws', 'onGameUpdate', this.onGameUpdate.bind(this));
+        this.mq.subscribe('ws', 'onRoomUpdate', this.onRoomUpdate.bind(this));
         this.mq.subscribe('ws', 'onJoinResponse', this.onJoinResponse.bind(this));
-    }
-
-    async onGameUpdate(msg) {
-        if (!msg.room_slug)
-            return;
-
-        let encoded = encode(msg);
-        //let isOver1kb = msgStr.length > 1000;
-
-        this.app.publish(encoded, false, false)
-    }
-
-    async requestJoin(ws, msg) {
-        let room = await r.findAnyRoom(msg.game_slug);
-        console.log(room);
-
-        if( !ws.pending )
-            ws.pending = {};
-        ws.pending[room.room_slug] = true;
-
-        msg.room_slug = room.room_slug;
-        msg.payload = {
-            displayname: ws.user.displayname
-        }
-
-        return true;
-    }
-
-    async onJoinResponse(msg) {
-        if (!msg.userid)
-            return;
-
-        let userid = msg.payload.userid;
-        let room_slug = msg.payload.room_slug;
-
-        let ws = this.users[userid];
-        if (!ws)
-            return;
-        let pending = ws.pending[room_slug];
-        if (!pending)
-            return;
-
-        if (msg.type == 'join') {
-            ws.subscribe(room_slug);
-
-            let roomData = await this.redis.get(room_slug);
-            let encoded = encode(roomData);
-            ws.send(encoded);
-            return;
-        }
-
-        if (msg.type == 'full') {
-            let response = { type: 'gamefull', payload: { room_slug } };
-            ws.send(encode(response));
-            return;
-        }
-
-        let response = { type: 'gameinvalid', payload: { room_slug } };
-        ws.send(encode(response));
     }
 
     async connectToRedis(options) {
@@ -207,52 +320,7 @@ class WSNode {
     }
 
 
-    async onClientMessage(ws, message, isBinary) {
 
-        let action = decode(message);
-        console.log(action);
-
-        if (!action || !action.type)
-            return;
-
-        switch (action.type) {
-            case 'join': {
-                await this.requestJoin(ws, action);
-                break;
-            }
-            default: {
-                if (!action)
-                    break;
-            }
-        }
-
-        action.userid = ws.user.shortid;
-        this.forwardAction(action);
-    }
-
-
-
-    async forwardAction(msg) {
-
-        if (!msg.type) {
-            console.error("Action is missing, ignoring message", msg);
-            return;
-        }
-        var game_slug = msg.game_slug;
-        if(!game_slug)
-            return;
-
-        try {
-            let exists = await this.mq.assertQueue(game_slug);
-            if (!exists) {
-                this.mq.publishQueue('loadGame', { game_slug })
-            }
-            this.mq.publishQueue(game_slug, msg);
-        }
-        catch (e) {
-            console.error(e);
-        }
-    }
 
     async upgrade(res, req, context) {
         auth.upgrade(res, req, context, true);
