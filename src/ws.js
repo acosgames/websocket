@@ -33,26 +33,101 @@ class WSNode {
 
         this.users = {};
         this.rooms = {};
+        this.roomStates = {};
 
         this.server = {};
         this.cluster = null;
         this.options = options;
     }
 
+    async kickPlayers(msg) {
+        let game = msg.payload;
+        let players = game.kick;
+        for (var id = 0; i < players.length; id++) {
+            if (game.players && game.players[id])
+                delete game.players[id];
+        }
 
+        for (var id = 0; i < players.length; id++) {
+            if (!this.users[id])
+                continue;
+            this.users[id].unsubscribe(msg.meta.room_slug);
+
+            let response = { type: 'kicked', meta: { room_slug: msg.meta.room_slug }, payload: msg.payload }
+            let encoded = encode(response);
+            this.users[id].send(encoded, true, false);
+        }
+    }
+
+    async killGameRoom(msg) {
+
+        let game = msg.payload;
+        if (!game || !game.players)
+            return;
+
+        for (var id in game.players) {
+            if (!this.users[id])
+                continue;
+            this.users[id].unsubscribe(msg.meta.room_slug);
+            // let response = { type: 'finish', payload: msg.payload }
+            // let encoded = encode(response);
+            // this.users[id].send(encoded, true, false);
+            // this.users[id].disconnect();
+        }
+
+        let room_slug = msg.meta.room_slug;
+        if (!room_slug) {
+            console.error("Kill Game Room: Error: Missing room_slug");
+            return;
+        }
+
+        this.cleanupRoom(room_slug);
+
+    }
+
+    async cleanupRoom(room_slug) {
+        delete this.rooms[room_slug]
+        delete this.roomStates[room_slug];
+
+        this.redis.del(room_slug);
+        this.redis.del(room_slug + '/meta');
+
+        r.deleteRoom(room_slug);
+    }
 
     async onRoomUpdate(msg) {
         let room_slug = msg.meta.room_slug;
         if (!room_slug)
-            return;
+            return true;
 
         try {
+            let savedMeta = msg.meta;
             delete msg['meta'];
+
+            if (msg.payload.next)
+                this.processTimelimit(msg.payload.next);
+
+            let playerList = Object.keys(msg.payload.players);
+
             let encoded = encode(msg);
             //let isOver1kb = msgStr.length > 1000;
-
-
             this.app.publish(room_slug, encoded, true, false)
+
+            msg.meta = savedMeta;
+            this.roomStates[room_slug] = msg;
+
+            setTimeout(() => {
+                if (msg.payload.kick) {
+                    this.kickPlayers(msg);
+                }
+
+                if (msg.type == 'finish' || playerList.length == 0 || msg.payload.killGame) {
+                    this.killGameRoom(msg);
+                    return true;
+                }
+            }, 1000)
+
+
             return true;
         }
         catch (e) {
@@ -74,8 +149,6 @@ class WSNode {
                 return true;
             let pending = ws.pending[room_slug];
             if (!pending) {
-
-
                 return true;
             }
 
@@ -109,42 +182,128 @@ class WSNode {
 
     }
 
+    async processTimelimit(next) {
+        let seconds = next.timelimit;
+        seconds = Math.min(60, Math.max(10, seconds));
+
+        let now = (new Date()).getTime();
+        let deadline = now + (seconds * 1000);
+        next.deadline = deadline;
+    }
+
+    async processPing(ws, message) {
+        let clientTime = message.payload;
+        let serverTime = (new Date()).getTime();
+        let offset = serverTime - clientTime;
+        let response = { type: 'pong', payload: { offset, serverTime } }
+        ws.send(encode(response), true, false);
+    }
+
+    async validateUser(ws, roomData) {
+        //prevent users from sending actions if not their turn
+        if (!roomData && !roomData.payload)
+            return false;
+        if (!roomData.payload.next && (roomData.payload.next.id != '*' || roomData.payload.next.id != ws.user.shortid))
+            return false;
+    }
+
     async onClientMessage(ws, message, isBinary) {
 
-        let action = decode(message);
-        console.log(action);
+        let unsafeAction = null;
+        try {
+            unsafeAction = decode(message)
+        }
+        catch (e) {
+            console.error(e);
+            return;
+        }
+        console.log(unsafeAction);
 
-        if (!action || !action.type)
+        if (!unsafeAction || !unsafeAction.type || typeof unsafeAction.type !== 'string')
             return;
 
-        let userMeta = action.meta;
-        action.meta = {};
-        action.user = { id: ws.user.shortid };
-        switch (action.type) {
-            case 'join': {
-                await this.requestJoin(ws, action);
-                break;
-            }
-            default: {
-                action.meta.room_slug = userMeta.room_slug;
-                if (!action)
-                    break;
-            }
+        let action = {};
+        action.type = unsafeAction.type;
+        action.payload = unsafeAction.payload;
+        if (unsafeAction.meta) {
+            action.meta = {}
+            action.meta.room_slug = unsafeAction.meta.room_slug;
         }
 
-        let room = await this.getRoom(action.meta.room_slug);
+
+        if (action.type == 'ping') {
+            this.processPing(ws, action);
+            return;
+        }
+
+        action.user = { id: ws.user.shortid };
+
+        //preprocess some of the actions to force certain values
+        if (action.type == 'join') {
+            let room = await this.requestJoin(ws, action);
+            if (!room) {
+                let response = { type: 'retry', payload: { type: action.type } }
+                ws.send(encode(response));
+                return;
+            }
+
+            action.meta = this.setupMeta(room);
+            this.forwardAction(action);
+            return;
+        }
+
+        let room_slug = (action.meta && action.meta.room_slug) ? action.meta.room_slug : null;
+        if (!room_slug)
+            return;
+
+        if (action.type == 'leave') {
+
+            let room = await this.getRoom(room_slug);
+            if (!room)
+                return;
+            action.payload = {};
+            action.meta = this.setupMeta(room);
+            this.forwardAction(action);
+            return;
+        }
+
+        let roomData = this.getRoomData(room_slug);
+        if (!roomData)
+            return;
+
+        if (action.type == 'skip ') {
+            let deadline = roomData.payload.next.deadline;
+            let now = (new Date()).getTime();
+            if (now < deadline) {
+                return;
+            }
+            action.payload = {
+                id: roomData.payload.next.id,
+                deadline, now
+            }
+        }
+        else {
+            if (!this.validateUser(ws, roomData))
+                return;
+        }
+
+        let room = await this.getRoom(room_slug);
         if (!room)
             return;
 
-        action.meta.gameid = room.gameid;
-        action.meta.game_slug = room.game_slug;
-        action.meta.maxplayers = room.maxplayers;
-        action.meta.version = room.version;
-
+        action.meta = this.setupMeta(room);
         this.forwardAction(action);
     }
 
-
+    setupMeta(room) {
+        let meta = {};
+        meta.room_slug = room.room_slug;
+        meta.gameid = room.gameid;
+        meta.game_slug = room.game_slug;
+        meta.maxplayers = room.maxplayers;
+        meta.version = room.version;
+        return meta;
+    }
 
     async forwardAction(msg) {
 
@@ -177,6 +336,18 @@ class WSNode {
         return room;
     }
 
+    async getRoomData(room_slug) {
+        if (!room_slug)
+            return null;
+        let roomData = this.roomStates[room_slug];
+        if (!roomData) {
+            roomData = await this.redis.get(room_slug);
+        }
+        if (!roomData)
+            return null;
+        return roomData;
+    }
+
     async cacheRoom(room) {
         this.rooms[room.room_slug] = room;
     }
@@ -190,6 +361,9 @@ class WSNode {
         let game_slug = msg.payload.game_slug;
 
         let room = await r.findAnyRoom(game_slug, isBeta);
+        if (!room)
+            return null;
+
         console.log(room);
 
         if (!ws.pending)
@@ -202,10 +376,9 @@ class WSNode {
         this.cacheJoin(ws, room);
 
         //these are used by the gameserver to add the user to specific room
-        msg.meta.room_slug = room.room_slug;
         msg.user.name = ws.user.displayname
 
-        return true;
+        return room;
     }
 
 

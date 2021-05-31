@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon --inspect=10004 --trace-warnings --watch . --watch ../fsg-shared/ --ignore ./sessions/ index.js",
-    "dev": "nodemon --inspect=10005 --trace-warnings --watch . --watch ../fsg-shared/ --ignore ./sessions/ index.js",
+    "start": "npm run dev",
+    "dev": "./node_modules/.bin/nodemon --inspect=10005 --trace-warnings --watch . --watch ../fsg-shared/ --ignore ./sessions/ index.js",
     "installws": "yarn add uWebSockets.js@uNetworking/uWebSockets.js#v18.14.0",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
