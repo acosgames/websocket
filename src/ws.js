@@ -138,6 +138,7 @@ class WSNode {
 
     async onJoinResponse(msg) {
         try {
+            console.log("Join Response: ", msg);
             if (!msg.payload.id)
                 return true;
 
@@ -145,22 +146,34 @@ class WSNode {
             let room_slug = msg.payload.room_slug;
 
             let ws = this.users[id];
-            if (!ws)
-                return true;
-            let pending = ws.pending[room_slug];
-            if (!pending) {
+            if (!ws) {
+                console.error("[onJoinResponse] missing websocket for: ", id);
                 return true;
             }
 
+            let pending = ws.pending[room_slug];
+            if (!pending) {
+                console.error("[onJoinResponse] missing pending for: ", id, room_slug);
+                //return true;
+            }
+            else {
+                delete ws.pending[room_slug];
+            }
 
-            delete ws.pending[room_slug];
+
 
             if (msg.type == 'join') {
+                console.log("[onJoinResponse] Subscribing and Sending to client.");
                 ws.subscribe(room_slug);
-                let roomData = await this.redis.get(room_slug);
+                let roomData = await this.getRoomData(room_slug);
+
                 if (roomData) {
+                    msg = roomData;
+                    msg.type = 'join';
                     let encoded = encode(msg);
                     ws.send(encoded, true, false);
+                } else {
+                    console.error("[onJoinResponse] Missing roomdata for join response: ", room_slug);
                 }
                 return true;
             }
@@ -199,12 +212,17 @@ class WSNode {
         ws.send(encode(response), true, false);
     }
 
-    async validateUser(ws, roomData) {
+    validateUser(ws, roomData) {
         //prevent users from sending actions if not their turn
         if (!roomData && !roomData.payload)
             return false;
-        if (!roomData.payload.next && (roomData.payload.next.id != '*' || roomData.payload.next.id != ws.user.shortid))
+        if (!roomData.payload.next)
             return false;
+        if (roomData.payload.next.id == '*')
+            return true;
+        if (roomData.payload.next.id == ws.user.shortid)
+            return true;
+        return false;
     }
 
     async onClientMessage(ws, message, isBinary) {
@@ -217,7 +235,7 @@ class WSNode {
             console.error(e);
             return;
         }
-        console.log(unsafeAction);
+        console.log("Received from Client: [" + ws.user.shortid + "]", unsafeAction);
 
         if (!unsafeAction || !unsafeAction.type || typeof unsafeAction.type !== 'string')
             return;
@@ -267,7 +285,7 @@ class WSNode {
             return;
         }
 
-        let roomData = this.getRoomData(room_slug);
+        let roomData = await this.getRoomData(room_slug);
         if (!roomData)
             return;
 
@@ -353,6 +371,8 @@ class WSNode {
     }
 
     async cacheJoin(ws, room) {
+        if (!ws.pending)
+            ws.pending = {};
         ws.pending[room.room_slug] = true;
     }
 
@@ -364,10 +384,9 @@ class WSNode {
         if (!room)
             return null;
 
-        console.log(room);
+        console.log("Found room: ", room.game_slug, room.room_slug, room.version);
 
-        if (!ws.pending)
-            ws.pending = {};
+
 
         //save the room to cache
         this.cacheRoom(room);
@@ -476,7 +495,7 @@ class WSNode {
 
 
     onClientClose(ws, code, message) {
-        console.log(ws, code, message);
+        console.log("Client Closed: ", ws.user.shortid, ws.user.displayname);
     }
 
     onClientOpen(ws) {
@@ -489,7 +508,7 @@ class WSNode {
         this.users[ws.user.shortid] = ws;
         ws.subscribe(ws.user.shortid);
 
-        console.log("User connected: ", ws);
+        console.log("User connected: ", ws.user.shortid, ws.user.displayname);
     }
 
 
