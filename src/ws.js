@@ -18,6 +18,8 @@ const rabbitmq = require('fsg-shared/services/rabbitmq');
 const GameService = require('fsg-shared/services/game');
 const g = new GameService();
 
+const cache = require('fsg-shared/services/cache');
+
 const RoomService = require('fsg-shared/services/room');
 const r = new RoomService();
 
@@ -89,8 +91,7 @@ class WSNode {
         delete this.rooms[room_slug]
         delete this.roomStates[room_slug];
 
-        this.redis.del(room_slug);
-        this.redis.del(room_slug + '/meta');
+
 
         r.deleteRoom(room_slug);
     }
@@ -170,6 +171,7 @@ class WSNode {
                 if (roomData) {
                     msg = roomData;
                     msg.type = 'join';
+                    msg.meta = await this.getRoom(room_slug);
                     let encoded = encode(msg);
                     ws.send(encoded, true, false);
                 } else {
@@ -258,15 +260,7 @@ class WSNode {
 
         //preprocess some of the actions to force certain values
         if (action.type == 'join') {
-            let room = await this.requestJoin(ws, action);
-            if (!room) {
-                let response = { type: 'retry', payload: { type: action.type } }
-                ws.send(encode(response));
-                return;
-            }
-
-            action.meta = this.setupMeta(room);
-            this.forwardAction(action);
+            await this.requestJoin(ws, action);
             return;
         }
 
@@ -346,6 +340,8 @@ class WSNode {
     }
 
     async getRoom(room_slug) {
+        return await cache.get(room_slug + '/meta');
+
         let room = this.rooms[room_slug];
         if (!room)
             room = await r.findRoom(room_slug);
@@ -355,6 +351,7 @@ class WSNode {
     }
 
     async getRoomData(room_slug) {
+        return await cache.get(room_slug);
         if (!room_slug)
             return null;
         let roomData = this.roomStates[room_slug];
@@ -370,7 +367,7 @@ class WSNode {
         this.rooms[room.room_slug] = room;
     }
 
-    async cacheJoin(ws, room) {
+    async pendingJoin(ws, room) {
         if (!ws.pending)
             ws.pending = {};
         ws.pending[room.room_slug] = true;
@@ -382,22 +379,29 @@ class WSNode {
 
         let room = await r.findAnyRoom(game_slug, isBeta);
         if (!room)
-            return null;
+            return;
 
         console.log("Found room: ", room.game_slug, room.room_slug, room.version);
 
-
-
         //save the room to cache
-        this.cacheRoom(room);
+        // this.cacheRoom(room);
 
         //track user who is pending a join 
-        this.cacheJoin(ws, room);
+        this.pendingJoin(ws, room);
 
         //these are used by the gameserver to add the user to specific room
         msg.user.name = ws.user.displayname
 
-        return room;
+        if (!room) {
+            let response = { type: 'retry', payload: { type: action.type } }
+            ws.send(encode(response));
+            return;
+        }
+
+        msg.meta = this.setupMeta(room);
+        this.forwardAction(msg);
+
+        return;
     }
 
 
