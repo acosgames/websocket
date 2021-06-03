@@ -216,13 +216,13 @@ class WSNode {
 
     validateUser(ws, roomData) {
         //prevent users from sending actions if not their turn
-        if (!roomData && !roomData.payload)
+        if (!roomData)
             return false;
-        if (!roomData.payload.next)
+        if (!roomData.next)
             return false;
-        if (roomData.payload.next.id == '*')
+        if (roomData.next.id == '*')
             return true;
-        if (roomData.payload.next.id == ws.user.shortid)
+        if (roomData.next.id == ws.user.shortid)
             return true;
         return false;
     }
@@ -245,9 +245,9 @@ class WSNode {
         let action = {};
         action.type = unsafeAction.type;
         action.payload = unsafeAction.payload;
-        if (unsafeAction.meta) {
+        if (unsafeAction.room_slug) {
             action.meta = {}
-            action.meta.room_slug = unsafeAction.meta.room_slug;
+            action.meta.room_slug = unsafeAction.room_slug;
         }
 
 
@@ -410,7 +410,7 @@ class WSNode {
         options = options || this.options
 
         this.options = options || {
-            idleTimeout: 30,
+            idleTimeout: 300,
             maxBackpressure: 1024,
             maxPayloadLength: 1380,
             compression: UWSjs.DEDICATED_COMPRESSOR_3KB,
