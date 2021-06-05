@@ -1,9 +1,11 @@
 
-async function onLeave(ws, action) {
-    let room = await this.getRoom(room_slug);
+const storage = require('./storage');
+
+module.exports = async function onLeave(ws, action) {
+    let room = await storage.getRoomMeta(room_slug);
     if (!room)
-        return;
+        return null;
+
     action.payload = {};
-    action.meta = this.setupMeta(room);
-    this.forwardAction(action);
+    return action;
 }

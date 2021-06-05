@@ -1,10 +1,29 @@
+const JoinAction = require('./onJoin');
+const onLeave = require('./onLeave');
+const onSkip = require('./onSkip');
+const onPing = require('./onPing');
+
+const { decode } = require('fsg-shared/util/encoder');
+
+const mq = require('fsg-shared/services/rabbitmq');
+const storage = require('./storage');
+const profiler = require('fsg-shared/util/profiler');
+
+console.log = () => { };
 
 class Action {
 
-
+    constructor() {
+        this.actions = {};
+        this.actions['join'] = JoinAction.onJoin.bind(JoinAction);
+        this.actions['leave'] = onLeave;
+        this.actions['skip'] = onSkip;
+        this.actions['ping'] = onPing;
+    }
 
     async onClientAction(ws, message, isBinary) {
 
+        profiler.StartTime('OnClientAction');
         let unsafeAction = null;
         try {
             unsafeAction = decode(message)
@@ -13,7 +32,7 @@ class Action {
             console.error(e);
             return;
         }
-        console.log("Received from Client: [" + ws.user.shortid + "]", unsafeAction);
+        //console.log("Received from Client: [" + ws.user.shortid + "]", unsafeAction);
 
         if (!unsafeAction || !unsafeAction.type || typeof unsafeAction.type !== 'string')
             return;
@@ -26,61 +45,93 @@ class Action {
             action.meta.room_slug = unsafeAction.room_slug;
         }
 
-
-        if (action.type == 'ping') {
-            this.processPing(ws, action);
-            return;
-        }
-
         action.user = { id: ws.user.shortid };
 
-        //preprocess some of the actions to force certain values
-        if (action.type == 'join') {
-            await this.requestJoin(ws, action);
+        if (action.type == 'ping') {
+            await onPing(ws, action);
             return;
         }
+
+        let systemAction = this.actions[action.type];
+        if (systemAction)
+            action = await systemAction(ws, action);
+        else
+            action = await this.gameAction(ws, action);
+
+        if (!action)
+            return;
 
         let room_slug = (action.meta && action.meta.room_slug) ? action.meta.room_slug : null;
-        if (!room_slug)
-            return;
-
-        if (action.type == 'leave') {
-
-            let room = await this.getRoom(room_slug);
-            if (!room)
-                return;
-            action.payload = {};
+        if (room_slug) {
+            let room = await storage.getRoomMeta(room_slug);
             action.meta = this.setupMeta(room);
-            this.forwardAction(action);
-            return;
         }
 
-        let roomData = await this.getRoomData(room_slug);
-        if (!roomData)
-            return;
-
-        if (action.type == 'skip ') {
-            let deadline = roomData.payload.next.deadline;
-            let now = (new Date()).getTime();
-            if (now < deadline) {
-                return;
-            }
-            action.payload = {
-                id: roomData.payload.next.id,
-                deadline, now
-            }
-        }
-        else {
-            if (!this.validateUser(ws, roomData))
-                return;
-        }
-
-        let room = await this.getRoom(room_slug);
-        if (!room)
-            return;
-
-        action.meta = this.setupMeta(room);
         this.forwardAction(action);
+        profiler.EndTime('OnClientAction');
+    }
+
+    async gameAction(ws, action) {
+
+        let room = await storage.getRoomMeta(room_slug);
+        if (!room)
+            return null;
+
+        let roomState = await storage.getRoomState(room_slug);
+        if (!roomState)
+            return null;
+
+        if (!this.validateUser(ws, roomState))
+            return null;
+
+        return action;
+    }
+
+    validateUser(ws, roomData) {
+        //prevent users from sending actions if not their turn
+        if (!roomData)
+            return false;
+        if (!roomData.next)
+            return false;
+        if (roomData.next.id == '*')
+            return true;
+        if (roomData.next.id == ws.user.shortid)
+            return true;
+        return false;
+    }
+
+    async forwardAction(msg) {
+
+        if (!msg.type) {
+            console.error("Action is missing, ignoring message", msg);
+            return;
+        }
+        var game_slug = msg.meta.game_slug;
+        if (!game_slug)
+            return;
+
+        try {
+            let exists = await mq.assertQueue(game_slug);
+            if (!exists) {
+                mq.publishQueue('loadGame', msg)
+            }
+            mq.publishQueue(game_slug, msg);
+        }
+        catch (e) {
+            console.error(e);
+        }
+    }
+
+    setupMeta(room) {
+        let meta = {};
+        meta.room_slug = room.room_slug;
+        meta.gameid = room.gameid;
+        meta.game_slug = room.game_slug;
+        meta.maxplayers = room.maxplayers;
+        meta.version = room.version;
+        return meta;
     }
 
 }
+
+module.exports = new Action();

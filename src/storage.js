@@ -1,7 +1,17 @@
-
+const cache = require("fsg-shared/services/cache");
+const r = require('fsg-shared/services/room');
 
 class Storage {
     constructor() {
+        this.users = {};
+        this.app = null;
+    }
+
+    setWSApp(app) {
+        this.app = app;
+    }
+    getWSApp() {
+        return this.app;
     }
 
     async getRoomMeta(room_slug) {
@@ -11,8 +21,8 @@ class Storage {
         return room || null;
     }
 
-    async setRoom(room_slug) {
-
+    async setRoomMeta(room_slug, meta) {
+        await cache.set(room_slug + '/meta', meta);
     }
 
     async getRoomState(room_slug) {
@@ -21,11 +31,21 @@ class Storage {
     }
 
     async setRoomState(room_slug, state) {
-
+        await cache.set(room_slug, state);
     }
 
-    async getUserById(id) {
+    addUser(ws) {
+        this.users[ws.user.shortid] = ws;
+    }
 
+    removeUser(ws) {
+        let id = ws.user.shortid;
+        if (this.users[id])
+            delete this.users[id];
+    }
+
+    getUser(id) {
+        return this.users[id];
     }
 
     async getUserByShortId(shortid) {
@@ -40,6 +60,19 @@ class Storage {
 
     }
 
+    async setUserRoom(id, roomMeta) {
+
+    }
+
+    async cleanupRoom(room_slug) {
+
+        await Promise.all([
+            cache.del(room_slug),
+            cache.del(room_slug + '/meta')
+        ]);
+
+        r.deleteRoom(room_slug);
+    }
 
 }
 

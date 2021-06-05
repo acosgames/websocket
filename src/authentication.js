@@ -16,7 +16,7 @@ class Authentication {
         this.wss = WSServer;
     }
 
-    async upgrade(res, req, context, serverType) {
+    async upgrade(res, req, context) {
         res.onAborted(() => {
             res.aborted = true;
         });
