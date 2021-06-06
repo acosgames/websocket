@@ -2,15 +2,32 @@ const storage = require('./storage');
 const { encode } = require('fsg-shared/util/encoder');
 const r = require('fsg-shared/services/room');
 
+function cloneObj(obj) {
+    if (typeof obj === 'object')
+        return JSON.parse(JSON.stringify(obj));
+    return obj;
+}
+
 class JoinAction {
 
     async onJoin(ws, action) {
         let isBeta = action.payload.beta;
         let game_slug = action.payload.game_slug;
 
-        let room = await r.findAnyRoom(game_slug, isBeta);
-        if (!room)
+        let room = null;
+        let rooms = await r.findPlayerRoom(action.user.id, game_slug);
+        if (rooms && rooms.length > 0) {
+            console.log(rooms);
+            room = rooms[0];
+            this.onJoined(ws, room.room_slug);
             return null;
+        }
+        else {
+            room = await r.findAnyRoom(game_slug, isBeta);
+            if (!room)
+                return null;
+        }
+
 
         console.log("Found room: ", room.game_slug, room.room_slug, room.version);
 
@@ -31,6 +48,26 @@ class JoinAction {
 
         action.meta = { room_slug: room.room_slug };
         return action;
+    }
+
+    async onJoined(ws, room_slug, roomState) {
+        let id = ws.user.id;
+
+        console.log("[onJoined] Subscribing and Sending to client.", id, room_slug);
+        ws.subscribe(room_slug);
+        roomState = roomState || await storage.getRoomState(room_slug);
+
+        if (roomState) {
+            let msg = {};
+            msg.payload = cloneObj(roomState);
+            msg.type = 'join';
+            msg.meta = await storage.getRoomMeta(room_slug);
+            console.log('[onJoined] Sending message: ', msg);
+            let encoded = encode(msg);
+            ws.send(encoded, true, false);
+        } else {
+            console.error("[onJoined] Missing roomState for join response: ", id, room_slug);
+        }
     }
 
     async pendingJoin(ws, room) {
@@ -66,19 +103,20 @@ class JoinAction {
 
 
             if (msg.type == 'join') {
-                console.log("[onJoinResponse] Subscribing and Sending to client.", id, room_slug);
-                ws.subscribe(room_slug);
-                let roomState = await storage.getRoomState(room_slug);
+                await this.onJoined(ws, room_slug, msg.payload);
+                // console.log("[onJoinResponse] Subscribing and Sending to client.", id, room_slug);
+                // ws.subscribe(room_slug);
+                // let roomState = await storage.getRoomState(room_slug);
 
-                if (roomState) {
-                    msg = roomState;
-                    msg.type = 'join';
-                    msg.meta = await storage.getRoomMeta(room_slug);
-                    let encoded = encode(msg);
-                    ws.send(encoded, true, false);
-                } else {
-                    console.error("[onJoinResponse] Missing roomState for join response: ", id, room_slug);
-                }
+                // if (roomState) {
+                //     msg = roomState;
+                //     msg.type = 'join';
+                //     msg.meta = await storage.getRoomMeta(room_slug);
+                //     let encoded = encode(msg);
+                //     ws.send(encoded, true, false);
+                // } else {
+                //     console.error("[onJoinResponse] Missing roomState for join response: ", id, room_slug);
+                // }
                 return true;
             }
 

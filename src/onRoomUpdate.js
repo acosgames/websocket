@@ -5,7 +5,7 @@ const storage = require('./storage');
 const mq = require('fsg-shared/services/rabbitmq');
 const redis = require('fsg-shared/services/redis');
 const JoinAction = require('./onJoin');
-
+const profiler = require('fsg-shared/util/profiler');
 
 class RoomUpdate {
     constructor() {
@@ -20,7 +20,7 @@ class RoomUpdate {
         }
 
         mq.subscribe('ws', 'onRoomUpdate', this.onRoomUpdate.bind(this));
-        mq.subscribe('ws', 'onJoinResponse', JoinAction.onJoinResponse);
+        mq.subscribe('ws', 'onJoinResponse', JoinAction.onJoinResponse.bind(JoinAction));
     }
 
 
@@ -42,20 +42,20 @@ class RoomUpdate {
             let app = storage.getWSApp();
             app.publish(room_slug, encoded, true, false)
 
-            msg.meta = savedMeta;
-            storage.setRoomState(room_slug, msg);
+            //msg.meta = savedMeta;
+            //storage.setRoomState(room_slug, msg);
 
             setTimeout(() => {
-                if (msg.payload.kick) {
-                    this.kickPlayers(msg);
-                }
-
                 if (msg.type == 'finish' || playerList.length == 0 || msg.payload.killGame) {
-                    this.killGameRoom(msg);
+                    this.killGameRoom(msg, savedMeta);
                     return true;
                 }
-            }, 1000)
 
+                if (msg.payload.kick) {
+                    this.kickPlayers(msg, savedMeta);
+                }
+            }, 1000)
+            profiler.EndTime('ActionUpdateLoop');
 
             return true;
         }
@@ -67,7 +67,7 @@ class RoomUpdate {
 
 
 
-    async kickPlayers(msg) {
+    async kickPlayers(msg, meta) {
         let game = msg.payload;
         let players = game.kick;
         for (var id = 0; i < players.length; id++) {
@@ -80,15 +80,15 @@ class RoomUpdate {
             if (!ws)
                 continue;
 
-            ws.unsubscribe(msg.meta.room_slug);
+            ws.unsubscribe(meta.room_slug);
 
-            let response = { type: 'kicked', meta: { room_slug: msg.meta.room_slug }, payload: msg.payload }
+            let response = { type: 'kicked', meta: { room_slug: meta.room_slug }, payload: msg.payload }
             let encoded = encode(response);
             ws.send(encoded, true, false);
         }
     }
 
-    async killGameRoom(msg) {
+    async killGameRoom(msg, meta) {
 
         let game = msg.payload;
         if (!game || !game.players)
@@ -99,16 +99,16 @@ class RoomUpdate {
             if (!ws)
                 continue;
 
-            ws.unsubscribe(msg.meta.room_slug);
+            ws.unsubscribe(meta.room_slug);
             // let response = { type: 'finish', payload: msg.payload }
             // let encoded = encode(response);
             // this.users[id].send(encoded, true, false);
             // this.users[id].disconnect();
         }
 
-        let room_slug = msg.meta.room_slug;
+        let room_slug = meta.room_slug;
         if (!room_slug) {
-            console.error("Kill Game Room: Error: Missing room_slug");
+            console.error("[killGameRoom] Error: Missing room_slug");
             return;
         }
 

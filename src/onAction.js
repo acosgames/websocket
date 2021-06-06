@@ -9,7 +9,7 @@ const mq = require('fsg-shared/services/rabbitmq');
 const storage = require('./storage');
 const profiler = require('fsg-shared/util/profiler');
 
-console.log = () => { };
+// console.log = () => { };
 
 class Action {
 
@@ -22,7 +22,7 @@ class Action {
     }
 
     async onClientAction(ws, message, isBinary) {
-
+        profiler.StartTime('ActionUpdateLoop');
         profiler.StartTime('OnClientAction');
         let unsafeAction = null;
         try {
@@ -67,12 +67,14 @@ class Action {
             action.meta = this.setupMeta(room);
         }
 
-        this.forwardAction(action);
+        await this.forwardAction(action);
         profiler.EndTime('OnClientAction');
     }
 
     async gameAction(ws, action) {
-
+        let room_slug = action.meta.room_slug;
+        if (!room_slug)
+            return null;
         let room = await storage.getRoomMeta(room_slug);
         if (!room)
             return null;
