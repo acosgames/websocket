@@ -19,7 +19,9 @@ class JoinAction {
         if (rooms && rooms.length > 0) {
             console.log(rooms);
             room = rooms[0];
-            this.onJoined(ws, room.room_slug);
+            if (!(await this.onJoined(ws, room.room_slug))) {
+                return this.onJoin(ws, action);
+            }
             return null;
         }
         else {
@@ -65,8 +67,11 @@ class JoinAction {
             console.log('[onJoined] Sending message: ', msg);
             let encoded = encode(msg);
             ws.send(encoded, true, false);
+            return true;
         } else {
             console.error("[onJoined] Missing roomState for join response: ", id, room_slug);
+            await r.removePlayerRoom(ws.user.shortid, room_slug);
+            return false;
         }
     }
 

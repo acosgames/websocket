@@ -33,8 +33,8 @@ class RoomUpdate {
             let savedMeta = msg.meta;
             delete msg['meta'];
 
-            if (msg.payload.next)
-                this.processTimelimit(msg.payload.next);
+            // if (msg.payload.next)
+            //     this.processTimelimit(msg.payload.next);
 
             let playerList = Object.keys(msg.payload.players);
 
@@ -46,7 +46,7 @@ class RoomUpdate {
             //storage.setRoomState(room_slug, msg);
 
             setTimeout(() => {
-                if (msg.type == 'finish' || playerList.length == 0 || msg.payload.killGame) {
+                if (msg.type == 'error' || msg.type == 'finish' || playerList.length == 0 || msg.payload.killGame) {
                     this.killGameRoom(msg, savedMeta);
                     return true;
                 }
