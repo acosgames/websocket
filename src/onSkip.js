@@ -2,6 +2,8 @@ const storage = require('./storage');
 
 module.exports = async function onSkip(ws, action) {
 
+    return null;
+
     let roomState = await storage.getRoomState(room_slug);
     if (!roomState)
         return null;

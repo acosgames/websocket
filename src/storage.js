@@ -1,6 +1,9 @@
 const cache = require("fsg-shared/services/cache");
 const r = require('fsg-shared/services/room');
 
+
+
+
 class Storage {
     constructor() {
         this.users = {};
@@ -13,6 +16,8 @@ class Storage {
     getWSApp() {
         return this.app;
     }
+
+
 
     async getRoomMeta(room_slug) {
         let room = await cache.get(room_slug + '/meta');

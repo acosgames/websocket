@@ -16,6 +16,7 @@
     "cookie": "^0.4.1",
     "fsg-shared": "file:../fsg-shared",
     "pako": "^2.0.3",
+    "priorityqueuejs": "^2.0.0",
     "pson": "^2.0.0",
     "uWebSockets.js": "uNetworking/uWebSockets.js#v18.14.0",
     "websocket": "^1.0.33"
