@@ -38,7 +38,7 @@ class JoinAction {
 
         //track user who is pending a join 
         this.pendingJoin(ws, room);
-
+        
         //these are used by the gameserver to add the user to specific room
         action.user.name = ws.user.displayname
 
@@ -48,7 +48,7 @@ class JoinAction {
             return null;
         }
 
-        action.meta = { room_slug: room.room_slug };
+        action.meta = room;
         return action;
     }
 

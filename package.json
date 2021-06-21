@@ -12,6 +12,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "axios": "^0.21.1",
     "bson": "^4.2.3",
     "cookie": "^0.4.1",
     "fsg-shared": "file:../fsg-shared",

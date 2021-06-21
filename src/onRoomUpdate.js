@@ -7,6 +7,7 @@ const redis = require('fsg-shared/services/redis');
 const JoinAction = require('./onJoin');
 const profiler = require('fsg-shared/util/profiler');
 
+
 class RoomUpdate {
     constructor() {
 
@@ -55,6 +56,7 @@ class RoomUpdate {
                     this.kickPlayers(msg, savedMeta);
                 }
             }, 1000)
+            
             profiler.EndTime('ActionUpdateLoop');
 
             return true;
