@@ -26,6 +26,7 @@ class RoomUpdate {
 
 
     async onRoomUpdate(msg) {
+        console.time('onRoomUpdate');
         let room_slug = msg.meta.room_slug;
         if (!room_slug)
             return true;
@@ -56,9 +57,9 @@ class RoomUpdate {
                     this.kickPlayers(msg, savedMeta);
                 }
             }, 1000)
-            
-            profiler.EndTime('ActionUpdateLoop');
 
+            profiler.EndTime('ActionUpdateLoop');
+            console.timeEnd('onRoomUpdate');
             return true;
         }
         catch (e) {
@@ -101,7 +102,8 @@ class RoomUpdate {
             if (!ws)
                 continue;
 
-            ws.unsubscribe(meta.room_slug);
+            ws.end(999, 'Game Over!')
+            // ws.unsubscribe(meta.room_slug);
             // let response = { type: 'finish', payload: msg.payload }
             // let encoded = encode(response);
             // this.users[id].send(encoded, true, false);
