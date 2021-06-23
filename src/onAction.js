@@ -22,8 +22,8 @@ class Action {
     }
 
     async onClientAction(ws, message, isBinary) {
-        profiler.StartTime('ActionUpdateLoop');
-        profiler.StartTime('OnClientAction');
+        // profiler.StartTime('ActionUpdateLoop');
+        // profiler.StartTime('OnClientAction');
         let unsafeAction = null;
         try {
             unsafeAction = decode(message)
@@ -68,7 +68,7 @@ class Action {
         }
 
         await this.forwardAction(action);
-        profiler.EndTime('OnClientAction');
+        // profiler.EndTime('OnClientAction');
     }
 
     async gameAction(ws, action) {

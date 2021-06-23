@@ -26,7 +26,7 @@ class RoomUpdate {
 
 
     async onRoomUpdate(msg) {
-        console.time('onRoomUpdate');
+        // console.time('onRoomUpdate');
         let room_slug = msg.meta.room_slug;
         if (!room_slug)
             return true;
@@ -58,8 +58,8 @@ class RoomUpdate {
                 }
             }, 1000)
 
-            profiler.EndTime('ActionUpdateLoop');
-            console.timeEnd('onRoomUpdate');
+            // profiler.EndTime('ActionUpdateLoop');
+            // console.timeEnd('onRoomUpdate');
             return true;
         }
         catch (e) {
