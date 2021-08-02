@@ -26,17 +26,23 @@ class RoomUpdate {
 
 
     async onRoomUpdate(msg) {
-        // console.time('onRoomUpdate');
+        console.log('onRoomUpdate: ', msg);
         let room_slug = msg.meta.room_slug;
         if (!room_slug)
             return true;
 
         try {
+
+            if (msg.type == 'join') {
+                JoinAction.onJoinResponse(msg);
+            }
+
             let savedMeta = msg.meta;
             delete msg['meta'];
 
             // if (msg.payload.next)
             //     this.processTimelimit(msg.payload.next);
+
 
             let playerList = Object.keys(msg.payload.players);
 
@@ -44,8 +50,8 @@ class RoomUpdate {
             let app = storage.getWSApp();
             app.publish(room_slug, encoded, true, false)
 
-            //msg.meta = savedMeta;
-            //storage.setRoomState(room_slug, msg);
+            msg.meta = savedMeta;
+            storage.setRoomState(room_slug, msg.payload);
 
             setTimeout(() => {
                 if (msg.type == 'error' || msg.type == 'finish' || playerList.length == 0 || msg.payload.killGame) {

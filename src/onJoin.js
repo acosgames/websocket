@@ -38,7 +38,7 @@ class JoinAction {
 
         //track user who is pending a join 
         this.pendingJoin(ws, room);
-        
+
         //these are used by the gameserver to add the user to specific room
         action.user.name = ws.user.displayname
 
@@ -59,7 +59,7 @@ class JoinAction {
         ws.subscribe(room_slug);
         roomState = roomState || await storage.getRoomState(room_slug);
 
-        if (roomState) {
+        if (roomState && roomState.players[ws.user.shortid]) {
             let msg = {};
             msg.payload = cloneObj(roomState);
             msg.type = 'join';
@@ -82,6 +82,42 @@ class JoinAction {
     }
 
     async onJoinResponse(msg) {
+        try {
+
+            let room_slug = msg.meta.room_slug;
+            let playerList = Object.keys(msg.payload.players);
+            let savedRoom = await storage.getRoomState(room_slug);
+            //let savedPlayerList = Object.keys(savedRoom.players);
+            for (var i = 0; i < playerList.length; i++) {
+                let id = playerList[i];
+                if (!(id in savedRoom.players)) {
+                    let ws = await storage.getUser(id);
+                    if (!ws) {
+                        console.error("[onJoinResponse] missing websocket for: ", id);
+                        return false;
+                    }
+
+                    let pending = ws.pending[room_slug];
+                    if (!pending) {
+                        console.error("[onJoinResponse] missing pending for: ", id, room_slug);
+                    }
+                    else {
+                        delete ws.pending[room_slug];
+                    }
+
+                    if (msg.type == 'join')
+                        await this.onJoined(ws, room_slug, msg);
+                }
+            }
+            return true;
+        }
+        catch (e) {
+            console.error(e);
+            return false;
+        }
+    }
+
+    async onJoinResponse2(msg) {
         try {
             console.log("Join Response: ", msg);
             if (!msg.payload.id)
@@ -108,7 +144,7 @@ class JoinAction {
 
 
             if (msg.type == 'join') {
-                await this.onJoined(ws, room_slug, msg.payload);
+                await this.onJoined(ws, room_slug);
                 // console.log("[onJoinResponse] Subscribing and Sending to client.", id, room_slug);
                 // ws.subscribe(room_slug);
                 // let roomState = await storage.getRoomState(room_slug);
