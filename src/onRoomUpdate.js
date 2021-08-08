@@ -27,18 +27,15 @@ class RoomUpdate {
 
     async onRoomUpdate(msg) {
         console.log('onRoomUpdate: ', msg);
-        let room_slug = msg.meta.room_slug;
+        let room_slug = msg.room_slug;
         if (!room_slug)
             return true;
 
         try {
 
             if (msg.type == 'join') {
-                JoinAction.onJoinResponse(msg);
+                await JoinAction.onJoinResponse(msg);
             }
-
-            let savedMeta = msg.meta;
-            delete msg['meta'];
 
             // if (msg.payload.next)
             //     this.processTimelimit(msg.payload.next);
@@ -50,17 +47,16 @@ class RoomUpdate {
             let app = storage.getWSApp();
             app.publish(room_slug, encoded, true, false)
 
-            msg.meta = savedMeta;
             storage.setRoomState(room_slug, msg.payload);
 
             setTimeout(() => {
                 if (msg.type == 'error' || msg.type == 'finish' || playerList.length == 0 || msg.payload.killGame) {
-                    this.killGameRoom(msg, savedMeta);
+                    this.killGameRoom(msg);
                     return true;
                 }
 
                 if (msg.payload.kick) {
-                    this.kickPlayers(msg, savedMeta);
+                    this.kickPlayers(msg);
                 }
             }, 1000)
 
@@ -76,7 +72,7 @@ class RoomUpdate {
 
 
 
-    async kickPlayers(msg, meta) {
+    async kickPlayers(msg) {
         let game = msg.payload;
         let players = game.kick;
         for (var id = 0; i < players.length; id++) {
@@ -89,15 +85,15 @@ class RoomUpdate {
             if (!ws)
                 continue;
 
-            ws.unsubscribe(meta.room_slug);
-
-            let response = { type: 'kicked', meta: { room_slug: meta.room_slug }, payload: msg.payload }
+            ws.unsubscribe(msg.room_slug);
+            let room_slug = msg.room_slug;
+            let response = { type: 'kicked', room_slug, payload: msg.payload }
             let encoded = encode(response);
             ws.send(encoded, true, false);
         }
     }
 
-    async killGameRoom(msg, meta) {
+    async killGameRoom(msg) {
 
         let game = msg.payload;
         if (!game || !game.players)
@@ -116,7 +112,7 @@ class RoomUpdate {
             // this.users[id].disconnect();
         }
 
-        let room_slug = meta.room_slug;
+        let room_slug = msg.room_slug;
         if (!room_slug) {
             console.error("[killGameRoom] Error: Missing room_slug");
             return;

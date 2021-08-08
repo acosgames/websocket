@@ -20,14 +20,8 @@ class Storage {
 
 
     async getRoomMeta(room_slug) {
-       
-        
-        let    room = await r.findRoom(room_slug);
+        let room = await r.findRoom(room_slug);
         return room || null;
-    }
-
-    async setRoomMeta(room_slug, meta) {
-        await cache.set(room_slug + '/meta', meta);
     }
 
     async getRoomState(room_slug) {

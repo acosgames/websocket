@@ -41,8 +41,7 @@ class Action {
         action.type = unsafeAction.type;
         action.payload = unsafeAction.payload;
         if (unsafeAction.room_slug) {
-            action.meta = {}
-            action.meta.room_slug = unsafeAction.room_slug;
+            action.room_slug = unsafeAction.room_slug;
         }
 
         action.user = { id: ws.user.shortid };
@@ -61,22 +60,15 @@ class Action {
         if (!action)
             return;
 
-        let room_slug = (action.meta && action.meta.room_slug) ? action.meta.room_slug : null;
-        if (room_slug) {
-            let room = await storage.getRoomMeta(room_slug);
-            action.meta = this.setupMeta(room);
-        }
-
         await this.forwardAction(action);
-        // profiler.EndTime('OnClientAction');
     }
 
     async gameAction(ws, action) {
-        let room_slug = action.meta.room_slug;
+        let room_slug = action.room_slug;
         if (!room_slug)
             return null;
-        let room = await storage.getRoomMeta(room_slug);
-        if (!room)
+        let meta = await storage.getRoomMeta(room_slug);
+        if (!meta)
             return null;
 
         let roomState = await storage.getRoomState(room_slug);
@@ -108,7 +100,9 @@ class Action {
             console.error("Action is missing, ignoring message", msg);
             return;
         }
-        var game_slug = msg.meta.game_slug;
+
+        let meta = await storage.getRoomMeta(msg.room_slug);
+        var game_slug = meta.game_slug;
         if (!game_slug)
             return;
 
@@ -122,16 +116,6 @@ class Action {
         catch (e) {
             console.error(e);
         }
-    }
-
-    setupMeta(room) {
-        let meta = {};
-        meta.room_slug = room.room_slug;
-        meta.gameid = room.gameid;
-        meta.game_slug = room.game_slug;
-        meta.maxplayers = room.maxplayers;
-        meta.version = room.version;
-        return meta;
     }
 
 }

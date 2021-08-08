@@ -25,7 +25,7 @@ class JoinAction {
             return null;
         }
         else {
-            room = await r.findAnyRoom(game_slug, isBeta);
+            room = await r.findAnyRoom(ws.user, game_slug, isBeta);
             if (!room)
                 return null;
         }
@@ -47,8 +47,8 @@ class JoinAction {
             ws.send(encode(response));
             return null;
         }
+        action.room_slug = room.room_slug;
 
-        action.meta = room;
         return action;
     }
 
@@ -60,10 +60,12 @@ class JoinAction {
         roomState = roomState || await storage.getRoomState(room_slug);
 
         if (roomState && roomState.players[ws.user.shortid]) {
-            let msg = {};
-            msg.payload = cloneObj(roomState);
-            msg.type = 'join';
-            msg.meta = await storage.getRoomMeta(room_slug);
+            let msg = {
+                type: 'join',
+                payload: cloneObj(roomState),
+                room_slug
+            };
+
             console.log('[onJoined] Sending message: ', msg);
             let encoded = encode(msg);
             ws.send(encoded, true, false);
@@ -81,34 +83,38 @@ class JoinAction {
         ws.pending[room.room_slug] = true;
     }
 
-    async onJoinResponse(msg) {
+    async onJoinResponse(action) {
         try {
 
-            let room_slug = msg.meta.room_slug;
-            let playerList = Object.keys(msg.payload.players);
-            let savedRoom = await storage.getRoomState(room_slug);
-            //let savedPlayerList = Object.keys(savedRoom.players);
-            for (var i = 0; i < playerList.length; i++) {
-                let id = playerList[i];
-                if (!(id in savedRoom.players)) {
-                    let ws = await storage.getUser(id);
-                    if (!ws) {
-                        console.error("[onJoinResponse] missing websocket for: ", id);
-                        return false;
-                    }
+            let room_slug = action.room_slug;
+            // let playerList = Object.keys(action.payload.players);
+            // let savedRoom = await storage.getRoomState(room_slug);
 
-                    let pending = ws.pending[room_slug];
-                    if (!pending) {
-                        console.error("[onJoinResponse] missing pending for: ", id, room_slug);
-                    }
-                    else {
-                        delete ws.pending[room_slug];
-                    }
-
-                    if (msg.type == 'join')
-                        await this.onJoined(ws, room_slug, msg);
+            if (action.payload && action.payload.join) {
+                let id = action.payload.join;
+                let ws = await storage.getUser(id);
+                if (!ws) {
+                    console.error("[onJoinResponse] missing websocket for: ", id);
+                    return false;
                 }
+
+                let pending = ws.pending[room_slug];
+                if (!pending) {
+                    console.error("[onJoinResponse] missing pending for: ", id, room_slug);
+                }
+                else {
+                    delete ws.pending[room_slug];
+                }
+
+                if (action.type == 'join')
+                    await this.onJoined(ws, room_slug, action.payload);
             }
+            // for (var i = 0; i < playerList.length; i++) {
+            //     let id = playerList[i];
+            //     if (!(id in savedRoom.players)) {
+
+            //     }
+            // }
             return true;
         }
         catch (e) {
@@ -145,19 +151,7 @@ class JoinAction {
 
             if (msg.type == 'join') {
                 await this.onJoined(ws, room_slug);
-                // console.log("[onJoinResponse] Subscribing and Sending to client.", id, room_slug);
-                // ws.subscribe(room_slug);
-                // let roomState = await storage.getRoomState(room_slug);
 
-                // if (roomState) {
-                //     msg = roomState;
-                //     msg.type = 'join';
-                //     msg.meta = await storage.getRoomMeta(room_slug);
-                //     let encoded = encode(msg);
-                //     ws.send(encoded, true, false);
-                // } else {
-                //     console.error("[onJoinResponse] Missing roomState for join response: ", id, room_slug);
-                // }
                 return true;
             }
 
