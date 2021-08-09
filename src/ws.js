@@ -86,7 +86,7 @@ class WSNode {
 
         storage.addUser(ws);
         // this.users[ws.user.shortid] = ws;
-        ws.subscribe(ws.user.shortid);
+        // ws.subscribe(ws.user.shortid);
 
         console.log("User connected: ", ws.user.shortid, ws.user.displayname);
     }

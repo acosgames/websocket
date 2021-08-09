@@ -6,6 +6,8 @@ module.exports = async function onLeave(ws, action) {
     if (!room)
         return null;
 
+    ws.unsubscribe(action.room_slug);
+
     action.payload = {};
     return action;
 }
