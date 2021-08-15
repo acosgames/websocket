@@ -6,7 +6,8 @@ const mq = require('fsg-shared/services/rabbitmq');
 const redis = require('fsg-shared/services/redis');
 const JoinAction = require('./onJoin');
 const profiler = require('fsg-shared/util/profiler');
-
+const delta = require('fsg-shared/util/delta');
+const r = require('fsg-shared/services/room');
 
 class RoomUpdate {
     constructor() {
@@ -26,31 +27,54 @@ class RoomUpdate {
 
 
     async onRoomUpdate(msg) {
-        console.log('onRoomUpdate: ', msg);
+        // console.log('onRoomUpdate: ', msg);
         let room_slug = msg.room_slug;
         if (!room_slug)
             return true;
 
         try {
 
+            let previousGamestate = await storage.getRoomState(room_slug) || {};
+            console.log("Previous: ", previousGamestate.players);
+            let gamestate = delta.merge(previousGamestate, msg.payload);
+            let playerList = Object.keys(gamestate.players);
+            console.log("Delta: ", msg.payload.players);
+            console.log("Updated Game: ", gamestate.players);
+
+            //remove private variables and send individually to palyers
+            let copy = JSON.parse(JSON.stringify(msg));
+            let hiddenState = delta.hidden(copy.payload.state);
+            let hiddenPlayers = delta.hidden(copy.payload.players);
+
+            storage.setRoomState(room_slug, gamestate);
+
             if (msg.type == 'join') {
                 await JoinAction.onJoinResponse(msg);
             }
 
-            // if (msg.payload.next)
-            //     this.processTimelimit(msg.payload.next);
-
-
-            let playerList = Object.keys(msg.payload.players);
-
             let encoded = encode(msg);
             let app = storage.getWSApp();
+
             app.publish(room_slug, encoded, true, false)
 
-            storage.setRoomState(room_slug, msg.payload);
+            if (hiddenPlayers)
+                for (var id in hiddenPlayers) {
+
+                    let ws = await storage.getUser(id);
+                    if (!ws)
+                        continue;
+
+                    let privateMsg = {
+                        type: 'private',
+                        room_slug,
+                        payload: { players: { [id]: hiddenPlayers[id] } }
+                    }
+                    let encodedPrivate = encode(privateMsg);
+                    ws.send(encodedPrivate);
+                }
 
             setTimeout(() => {
-                if (msg.type == 'error' || msg.type == 'finish' || playerList.length == 0 || msg.payload.killGame) {
+                if (msg.type == 'error' || msg.type == 'finish' || playerList.length == 0 || (msg.payload.events && msg.payload.events.gameover)) {
                     this.killGameRoom(msg);
                     return true;
                 }
@@ -99,18 +123,24 @@ class RoomUpdate {
         if (!game || !game.players)
             return;
 
+        let meta = await storage.getRoomMeta(msg.room_slug);
+
+        let playerRatings = [];
         for (var id in game.players) {
             let ws = storage.getUser(id);
             if (!ws)
                 continue;
 
-            ws.end(999, 'Game Over!')
-            // ws.unsubscribe(meta.room_slug);
-            // let response = { type: 'finish', payload: msg.payload }
-            // let encoded = encode(response);
-            // this.users[id].send(encoded, true, false);
-            // this.users[id].disconnect();
+            let player = game.players[id];
+            let playerRating = {
+                mu: player.mu,
+                sigma: player.sigma,
+                rating: player.rating
+            };
+            playerRatings.push(playerRating)
+            r.setPlayerRating(id, meta.game_slug, playerRating);
         }
+
 
         let room_slug = msg.room_slug;
         if (!room_slug) {

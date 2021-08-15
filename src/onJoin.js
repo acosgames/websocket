@@ -16,6 +16,12 @@ class JoinAction {
 
         let room = null;
         let rooms = await r.findPlayerRoom(action.user.id, game_slug);
+        let playerRating = await r.findPlayerRating(action.user.id, game_slug);
+
+        if (!ws.user.ratings) {
+            ws.user.ratings = {};
+        }
+        ws.user.ratings[game_slug] = playerRating.rating;
         if (rooms && rooms.length > 0) {
             console.log(rooms);
             room = rooms[0];
@@ -32,6 +38,7 @@ class JoinAction {
 
 
         console.log("Found room: ", room.game_slug, room.room_slug, room.version);
+
 
         //save the room to cache
         // this.cacheRoom(room);
@@ -66,12 +73,12 @@ class JoinAction {
                 room_slug
             };
 
-            console.log('[onJoined] Sending message: ', msg);
+            console.log('[onJoined] Sending message: ', msg.payload);
             let encoded = encode(msg);
             ws.send(encoded, true, false);
             return true;
         } else {
-            console.error("[onJoined] Missing roomState for join response: ", id, room_slug);
+            console.error("[onJoined] Missing roomState for join response: ", id, room_slug, roomState.players);
             await r.removePlayerRoom(ws.user.shortid, room_slug);
             return false;
         }
@@ -83,15 +90,15 @@ class JoinAction {
         ws.pending[room.room_slug] = true;
     }
 
-    async onJoinResponse(action) {
+    async onJoinResponse(msg) {
         try {
 
-            let room_slug = action.room_slug;
+            let room_slug = msg.room_slug;
             // let playerList = Object.keys(action.payload.players);
             // let savedRoom = await storage.getRoomState(room_slug);
 
-            if (action.payload && action.payload.join) {
-                let id = action.payload.join;
+            if (msg.payload && msg.payload.events && msg.payload.events.join) {
+                let id = msg.payload.events.join.id;
                 let ws = await storage.getUser(id);
                 if (!ws) {
                     console.error("[onJoinResponse] missing websocket for: ", id);
@@ -106,8 +113,8 @@ class JoinAction {
                     delete ws.pending[room_slug];
                 }
 
-                if (action.type == 'join')
-                    await this.onJoined(ws, room_slug, action.payload);
+                if (msg.type == 'join')
+                    await this.onJoined(ws, room_slug);
             }
             // for (var i = 0; i < playerList.length; i++) {
             //     let id = playerList[i];

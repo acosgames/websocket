@@ -30,7 +30,7 @@ class Storage {
     }
 
     async setRoomState(room_slug, state) {
-        await cache.set(room_slug, state);
+        await cache.setLocal(room_slug, state);
     }
 
     addUser(ws) {
@@ -67,7 +67,9 @@ class Storage {
 
         await Promise.all([
             cache.del(room_slug),
-            cache.del(room_slug + '/meta')
+            cache.del(room_slug + '/meta'),
+            cache.del(room_slug + '/timer'),
+            cache.del(room_slug + '/p')
         ]);
 
         r.deleteRoom(room_slug);
