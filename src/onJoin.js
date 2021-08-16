@@ -21,7 +21,7 @@ class JoinAction {
         if (!ws.user.ratings) {
             ws.user.ratings = {};
         }
-        ws.user.ratings[game_slug] = playerRating.rating;
+        //ws.user.ratings[game_slug] = playerRating.rating;
         if (rooms && rooms.length > 0) {
             console.log(rooms);
             room = rooms[0];
@@ -78,7 +78,7 @@ class JoinAction {
             ws.send(encoded, true, false);
             return true;
         } else {
-            console.error("[onJoined] Missing roomState for join response: ", id, room_slug, roomState.players);
+            console.error("[onJoined] Missing roomState for join response: ", id, room_slug);
             await r.removePlayerRoom(ws.user.shortid, room_slug);
             return false;
         }

@@ -35,11 +35,11 @@ class RoomUpdate {
         try {
 
             let previousGamestate = await storage.getRoomState(room_slug) || {};
-            console.log("Previous: ", previousGamestate.players);
+            // console.log("Previous: ", previousGamestate.players);
             let gamestate = delta.merge(previousGamestate, msg.payload);
             let playerList = Object.keys(gamestate.players);
-            console.log("Delta: ", msg.payload.players);
-            console.log("Updated Game: ", gamestate.players);
+            console.log("Delta: ", msg.payload);
+            // console.log("Updated Game: ", gamestate);
 
             //remove private variables and send individually to palyers
             let copy = JSON.parse(JSON.stringify(msg));
@@ -49,13 +49,14 @@ class RoomUpdate {
             storage.setRoomState(room_slug, gamestate);
 
             if (msg.type == 'join') {
-                await JoinAction.onJoinResponse(msg);
+                await JoinAction.onJoinResponse(copy);
             }
 
-            let encoded = encode(msg);
+
             let app = storage.getWSApp();
 
-            app.publish(room_slug, encoded, true, false)
+
+
 
             if (hiddenPlayers)
                 for (var id in hiddenPlayers) {
@@ -73,16 +74,26 @@ class RoomUpdate {
                     ws.send(encodedPrivate);
                 }
 
-            setTimeout(() => {
-                if (msg.type == 'error' || msg.type == 'finish' || playerList.length == 0 || (msg.payload.events && msg.payload.events.gameover)) {
-                    this.killGameRoom(msg);
-                    return true;
-                }
 
-                if (msg.payload.kick) {
-                    this.kickPlayers(msg);
-                }
-            }, 1000)
+            let isGameover = copy.type == 'finish' || (gamestate.events && gamestate.events.gameover);
+            if (copy.type == 'error' || isGameover || playerList.length == 0) {
+                if (isGameover)
+                    this.updatePlayerRatings(copy);
+
+                setTimeout(() => {
+                    this.killGameRoom(copy);
+                }, 1000)
+                //return true;
+            }
+
+            if (copy.payload.kick) {
+                this.kickPlayers(copy);
+            }
+
+            // setTimeout(() => {
+            let encoded = encode(copy);
+            app.publish(room_slug, encoded, true, false)
+            // }, 200)
 
             // profiler.EndTime('ActionUpdateLoop');
             // console.timeEnd('onRoomUpdate');
@@ -98,6 +109,7 @@ class RoomUpdate {
 
     async kickPlayers(msg) {
         let game = msg.payload;
+        let room_slug = msg.room_slug;
         let players = game.kick;
         for (var id = 0; i < players.length; id++) {
             if (game.players && game.players[id])
@@ -109,21 +121,21 @@ class RoomUpdate {
             if (!ws)
                 continue;
 
-            ws.unsubscribe(msg.room_slug);
-            let room_slug = msg.room_slug;
-            let response = { type: 'kicked', room_slug, payload: msg.payload }
+
+            ws.unsubscribe(room_slug);
+            let response = { type: 'kicked', room_slug, payload: game }
             let encoded = encode(response);
             ws.send(encoded, true, false);
         }
     }
 
-    async killGameRoom(msg) {
-
+    async updatePlayerRatings(msg) {
         let game = msg.payload;
+        let room_slug = msg.room_slug;
         if (!game || !game.players)
             return;
+        let meta = await storage.getRoomMeta(room_slug);
 
-        let meta = await storage.getRoomMeta(msg.room_slug);
 
         let playerRatings = [];
         for (var id in game.players) {
@@ -139,16 +151,20 @@ class RoomUpdate {
             };
             playerRatings.push(playerRating)
             r.setPlayerRating(id, meta.game_slug, playerRating);
+
+            delete player.sigma;
+            delete player.mu;
         }
+    }
 
+    async killGameRoom(msg) {
 
-        let room_slug = msg.room_slug;
-        if (!room_slug) {
+        if (!msg.room_slug) {
             console.error("[killGameRoom] Error: Missing room_slug");
             return;
         }
 
-        storage.cleanupRoom(room_slug);
+        storage.cleanupRoom(msg.room_slug);
     }
 
     async processTimelimit(next) {

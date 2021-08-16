@@ -65,7 +65,7 @@ class Storage {
 
     async cleanupRoom(room_slug) {
 
-        await Promise.all([
+        Promise.all([
             cache.del(room_slug),
             cache.del(room_slug + '/meta'),
             cache.del(room_slug + '/timer'),
