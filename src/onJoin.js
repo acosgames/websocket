@@ -11,7 +11,7 @@ function cloneObj(obj) {
 class JoinAction {
 
     async onJoin(ws, action) {
-        let isBeta = action.payload.beta;
+        let isBeta = action.payload.beta || false;
         let game_slug = action.payload.game_slug;
 
         let room = null;
@@ -54,6 +54,10 @@ class JoinAction {
             ws.send(encode(response));
             return null;
         }
+
+        let response = { type: 'joining', room_slug: room.room_slug }
+        ws.send(encode(response));
+
         action.room_slug = room.room_slug;
 
         return action;

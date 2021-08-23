@@ -38,7 +38,7 @@ class RoomUpdate {
             // console.log("Previous: ", previousGamestate.players);
             let gamestate = delta.merge(previousGamestate, msg.payload);
             let playerList = Object.keys(gamestate.players);
-            console.log("Delta: ", msg.payload);
+            console.log("Delta: ", msg);
             // console.log("Updated Game: ", gamestate);
 
             //remove private variables and send individually to palyers
@@ -68,7 +68,7 @@ class RoomUpdate {
                     let privateMsg = {
                         type: 'private',
                         room_slug,
-                        payload: { players: { [id]: hiddenPlayers[id] } }
+                        payload: hiddenPlayers[id]
                     }
                     let encodedPrivate = encode(privateMsg);
                     ws.send(encodedPrivate);
@@ -104,8 +104,6 @@ class RoomUpdate {
         }
         return false;
     }
-
-
 
     async kickPlayers(msg) {
         let game = msg.payload;

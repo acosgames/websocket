@@ -24,19 +24,19 @@ async function start() {
 
     let credentials = credutil();
     let url = credentials.platform.api.url;
-    while( true ) {
+    while (true) {
 
         try {
             let response = await axios.get(url)
-            if( response )
+            if (response)
                 break;
         }
-        catch(e) {}
+        catch (e) { }
 
         await sleep(2000);
     }
 
-    
+
     WSNode.connect();
 }
 

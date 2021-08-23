@@ -1,5 +1,5 @@
 const { v4: uuidv4 } = require('uuid');
-const cookie = require('cookie')
+// const cookie = require('cookie')
 const PersonService = require('fsg-shared/services/person');
 const persons = new PersonService();
 const credutil = require('fsg-shared/util/credentials');
@@ -26,28 +26,30 @@ class Authentication {
 
             let _logged = true;
 
+            // const _cookie = cookie.parse(req.getHeader('cookie'))
             let key = req.getHeader('sec-websocket-key');
-            let apikey = req.getHeader('sec-websocket-protocol');
+            let jwtToken = req.getHeader('sec-websocket-protocol');
             let ext = req.getHeader('sec-websocket-extensions');
 
-            //if (!serverType) {
-            user = await this.check(apikey);
-
-            if (!user) {
+            try {
+                user = await persons.decodeUserToken(jwtToken);
+                if (!user) {
+                    res.writeStatus('401');
+                    res.end();
+                    return;
+                }
+            }
+            catch (e) {
                 res.writeStatus('401');
                 res.end();
                 return;
             }
+
             _logged = user ? true : false;
-            //serverType = 'user';
-            //this.users[user.apikey] = user;
-            //}
-
-
 
             res.upgrade(
                 { _logged, user },
-                key, apikey, ext,
+                key, jwtToken, ext,
                 context
             )
 
@@ -68,8 +70,6 @@ class Authentication {
         // and set _logged true or false
 
         try {
-
-
             let user = { apikey };
             user = await persons.findUser(user);
 
