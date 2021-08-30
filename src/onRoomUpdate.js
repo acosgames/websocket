@@ -22,7 +22,7 @@ class RoomUpdate {
         }
 
         mq.subscribe('ws', 'onRoomUpdate', this.onRoomUpdate.bind(this));
-        mq.subscribe('ws', 'onJoinResponse', JoinAction.onJoinResponse.bind(JoinAction));
+        //mq.subscribe('ws', 'onJoinResponse', JoinAction.onJoinResponse.bind(JoinAction));
     }
 
 
@@ -49,7 +49,7 @@ class RoomUpdate {
             storage.setRoomState(room_slug, gamestate);
 
             if (msg.type == 'join') {
-                await JoinAction.onJoinResponse(copy);
+                await JoinAction.onJoinResponse(room_slug, gamestate);
             }
 
 
@@ -71,7 +71,7 @@ class RoomUpdate {
                         payload: hiddenPlayers[id]
                     }
                     let encodedPrivate = encode(privateMsg);
-                    ws.send(encodedPrivate);
+                    ws.send(encodedPrivate, true, false);
                 }
 
 

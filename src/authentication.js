@@ -47,8 +47,9 @@ class Authentication {
 
             _logged = user ? true : false;
 
+            var pending = {};
             res.upgrade(
-                { _logged, user },
+                { _logged, user, pending },
                 key, jwtToken, ext,
                 context
             )

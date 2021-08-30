@@ -51,12 +51,16 @@ class JoinAction {
 
         if (!room) {
             let response = { type: 'retry', payload: { type: action.type } }
-            ws.send(encode(response));
+            ws.send(encode(response), true, false);
             return null;
         }
 
-        let response = { type: 'joining', room_slug: room.room_slug }
-        ws.send(encode(response));
+        setTimeout(() => {
+            ws.subscribe(room.room_slug);
+            let response = { type: 'joining', room_slug: room.room_slug, payload: {} }
+            ws.send(encode(response), true, false);
+        }, 0);
+
 
         action.room_slug = room.room_slug;
 
@@ -94,15 +98,13 @@ class JoinAction {
         ws.pending[room.room_slug] = true;
     }
 
-    async onJoinResponse(msg) {
+    async onJoinResponse(room_slug, gamestate) {
         try {
-
-            let room_slug = msg.room_slug;
             // let playerList = Object.keys(action.payload.players);
             // let savedRoom = await storage.getRoomState(room_slug);
 
-            if (msg.payload && msg.payload.events && msg.payload.events.join) {
-                let id = msg.payload.events.join.id;
+            if (gamestate && gamestate.events && gamestate.events.join) {
+                let id = gamestate.events.join.id;
                 let ws = await storage.getUser(id);
                 if (!ws) {
                     console.error("[onJoinResponse] missing websocket for: ", id);
@@ -117,8 +119,7 @@ class JoinAction {
                     delete ws.pending[room_slug];
                 }
 
-                if (msg.type == 'join')
-                    await this.onJoined(ws, room_slug);
+                await this.onJoined(ws, room_slug);
             }
             // for (var i = 0; i < playerList.length; i++) {
             //     let id = playerList[i];
