@@ -46,10 +46,10 @@ class Action {
 
         action.user = { id: ws.user.shortid };
 
-        if (action.type == 'ping') {
-            await onPing(ws, action);
-            return;
-        }
+        // if (action.type == 'ping') {
+        //     await onPing(ws, action);
+        //     return;
+        // }
 
         let systemAction = this.actions[action.type];
         if (systemAction)

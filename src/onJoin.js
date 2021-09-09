@@ -16,7 +16,7 @@ class JoinAction {
 
         let room = null;
         let rooms = await r.findPlayerRoom(action.user.id, game_slug);
-        let playerRating = await r.findPlayerRating(action.user.id, game_slug);
+        // let playerRating = await r.findPlayerRating(action.user.id, game_slug);
 
         if (!ws.user.ratings) {
             ws.user.ratings = {};
@@ -57,7 +57,7 @@ class JoinAction {
 
         setTimeout(() => {
             ws.subscribe(room.room_slug);
-            let response = { type: 'joining', room_slug: room.room_slug, payload: {} }
+            let response = { type: 'joining', room_slug: room.room_slug, beta: room.istest, payload: {} }
             ws.send(encode(response), true, false);
         }, 0);
 
@@ -78,6 +78,7 @@ class JoinAction {
             let msg = {
                 type: 'join',
                 payload: cloneObj(roomState),
+                beta: room.istest,
                 room_slug
             };
 

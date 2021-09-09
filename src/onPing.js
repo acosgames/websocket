@@ -6,5 +6,5 @@ module.exports = async function onPing(ws, action) {
     let offset = serverTime - clientTime;
     let response = { type: 'pong', payload: { offset, serverTime } }
     ws.send(encode(response), true, false);
-    return action;
+    return null;
 }
