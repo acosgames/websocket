@@ -67,31 +67,7 @@ class JoinAction {
         return action;
     }
 
-    async onJoined(ws, room_slug, roomState) {
-        let id = ws.user.id;
 
-        console.log("[onJoined] Subscribing and Sending to client.", id, room_slug);
-        ws.subscribe(room_slug);
-        roomState = roomState || await storage.getRoomState(room_slug);
-
-        if (roomState && roomState.players[ws.user.shortid]) {
-            let msg = {
-                type: 'join',
-                payload: cloneObj(roomState),
-                beta: room.istest,
-                room_slug
-            };
-
-            console.log('[onJoined] Sending message: ', msg.payload);
-            let encoded = encode(msg);
-            ws.send(encoded, true, false);
-            return true;
-        } else {
-            console.error("[onJoined] Missing roomState for join response: ", id, room_slug);
-            await r.removePlayerRoom(ws.user.shortid, room_slug);
-            return false;
-        }
-    }
 
     async pendingJoin(ws, room) {
         if (!ws.pending)
@@ -135,6 +111,37 @@ class JoinAction {
             return false;
         }
     }
+
+    async onJoined(ws, room_slug, roomState) {
+        let id = ws.user.id;
+
+        console.log("[onJoined] Subscribing and Sending to client.", id, room_slug);
+        ws.subscribe(room_slug);
+        roomState = roomState || await storage.getRoomState(room_slug);
+
+
+        if (roomState && roomState.players[ws.user.shortid]) {
+
+            let room = await storage.getRoomMeta(room_slug);
+
+            let msg = {
+                type: 'join',
+                payload: cloneObj(roomState),
+                beta: room.istest,
+                room_slug
+            };
+
+            console.log('[onJoined] Sending message: ', msg.payload);
+            let encoded = encode(msg);
+            ws.send(encoded, true, false);
+            return true;
+        } else {
+            console.error("[onJoined] Missing roomState for join response: ", id, room_slug);
+            await r.removePlayerRoom(ws.user.shortid, room_slug);
+            return false;
+        }
+    }
+
 
     async onJoinResponse2(msg) {
         try {
