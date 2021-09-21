@@ -14,6 +14,11 @@ class JoinAction {
         let isBeta = action.payload.beta || false;
         let game_slug = action.payload.game_slug;
 
+        if (!game_slug && action.payload.room_slug) {
+            await this.onJoinRoom(ws, action);
+            return action;
+        }
+
         let room = null;
         let rooms = await r.findPlayerRoom(action.user.id, game_slug);
         // let playerRating = await r.findPlayerRating(action.user.id, game_slug);
@@ -36,13 +41,20 @@ class JoinAction {
                 return null;
         }
 
-
         console.log("Found room: ", room.game_slug, room.room_slug, room.version);
 
+        await this.onPreJoinRoom(ws, action, room);
 
-        //save the room to cache
-        // this.cacheRoom(room);
+        return action;
+    }
 
+    async onJoinRoom(ws, action) {
+        let room_slug = action.payload.room_slug;
+        let room = await storage.getRoomMeta(room_slug);
+        await this.onPreJoinRoom(ws, action, room);
+    }
+
+    async onPreJoinRoom(ws, action, room) {
         //track user who is pending a join 
         this.pendingJoin(ws, room);
 
@@ -55,17 +67,15 @@ class JoinAction {
             return null;
         }
 
+        ws.subscribe(room.room_slug);
         setTimeout(() => {
-            ws.subscribe(room.room_slug);
             let response = { type: 'joining', room_slug: room.room_slug, beta: room.istest, payload: {} }
             ws.send(encode(response), true, false);
         }, 0);
 
-
         action.room_slug = room.room_slug;
-
-        return action;
     }
+
 
 
 
@@ -115,7 +125,7 @@ class JoinAction {
     async onJoined(ws, room_slug, roomState) {
         let id = ws.user.id;
 
-        console.log("[onJoined] Subscribing and Sending to client.", id, room_slug);
+        // console.log("[onJoined] Subscribing and Sending to client.", id, room_slug);
         ws.subscribe(room_slug);
         roomState = roomState || await storage.getRoomState(room_slug);
 
@@ -125,13 +135,13 @@ class JoinAction {
             let room = await storage.getRoomMeta(room_slug);
 
             let msg = {
-                type: 'join',
+                type: 'joined',
                 payload: cloneObj(roomState),
                 beta: room.istest,
                 room_slug
             };
 
-            console.log('[onJoined] Sending message: ', msg.payload);
+            // console.log('[onJoined] Sending message: ', msg.payload);
             let encoded = encode(msg);
             ws.send(encoded, true, false);
             return true;

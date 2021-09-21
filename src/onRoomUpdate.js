@@ -27,7 +27,7 @@ class RoomUpdate {
 
 
     async onRoomUpdate(msg) {
-        // console.log('onRoomUpdate: ', msg);
+        profiler.StartTime('onRoomUpdate');
         let room_slug = msg.room_slug;
         if (!room_slug)
             return true;
@@ -38,7 +38,7 @@ class RoomUpdate {
             // console.log("Previous: ", previousGamestate.players);
             let gamestate = delta.merge(previousGamestate, msg.payload);
             let playerList = Object.keys(gamestate.players);
-            console.log("Delta: ", msg);
+            // console.log("Delta: ", msg);
             // console.log("Updated Game: ", gamestate);
 
             //remove private variables and send individually to palyers
@@ -95,8 +95,8 @@ class RoomUpdate {
             app.publish(room_slug, encoded, true, false)
             // }, 200)
 
-            // profiler.EndTime('ActionUpdateLoop');
-            // console.timeEnd('onRoomUpdate');
+            profiler.EndTime('ActionUpdateLoop');
+            profiler.EndTime('onRoomUpdate');
             return true;
         }
         catch (e) {
