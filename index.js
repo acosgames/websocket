@@ -37,7 +37,9 @@ async function start() {
     }
 
 
-    WSNode.connect();
+    await WSNode.connect();
+
+    console.log("[WebSocket] STARTED @ " + (new Date()).toString());
 }
 
 start();

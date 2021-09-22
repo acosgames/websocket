@@ -17,7 +17,7 @@ class Action {
         this.actions = {};
         this.actions['join'] = JoinAction.onJoin.bind(JoinAction);
         this.actions['leave'] = onLeave;
-        this.actions['skip'] = onSkip;
+        this.actions['skip'] = onSkip; //handled by timer in gameserver, not used here
         this.actions['ping'] = onPing;
     }
 
@@ -40,6 +40,8 @@ class Action {
         let action = {};
         action.type = unsafeAction.type;
         action.payload = unsafeAction.payload;
+        action.seq = unsafeAction.seq;
+
         if (unsafeAction.room_slug) {
             action.room_slug = unsafeAction.room_slug;
         }
@@ -76,22 +78,31 @@ class Action {
         if (!roomState)
             return null;
 
-        if (!this.validateUser(ws, roomState))
+        if (!this.validateUser(ws, roomState, action))
             return null;
 
         return action;
     }
 
-    validateUser(ws, roomData) {
+    validateUser(ws, roomState, action) {
         //prevent users from sending actions if not their turn
-        if (!roomData)
+        if (!roomState)
             return false;
-        if (!roomData.next)
+        if (!roomState.next)
             return false;
-        if (roomData.next.id == '*')
+
+
+
+        if (roomState.next.id == '*' || roomState.next.id == ws.user.shortid) {
+            if (roomState.timer.seq != action.seq) {
+                JoinAction.subscribeToRoom(ws, action.room_slug, roomState);
+                return false;
+            }
             return true;
-        if (roomData.next.id == ws.user.shortid)
-            return true;
+        }
+
+
+
         return false;
     }
 

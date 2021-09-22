@@ -16,6 +16,12 @@ const RoomUpdate = require('./onRoomUpdate');
 
 const storage = require('./storage');
 
+const redis = require('fsg-shared/services/redis');
+const rabbitmq = require('fsg-shared/services/rabbitmq');
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
 class WSNode {
 
     constructor(options) {
@@ -27,6 +33,9 @@ class WSNode {
         this.options = options;
     }
 
+    sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
 
     async connect(options) {
         options = options || this.options
@@ -56,6 +65,12 @@ class WSNode {
 
         storage.setWSApp(this.app);
 
+        while (!(rabbitmq.isActive() && redis.isActive)) {
+
+            console.warn("[WebSocket] waiting on rabbitmq and redis...");
+            await this.sleep(1000);
+            //return;
+        }
         return this.app;
     }
 

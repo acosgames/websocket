@@ -15,8 +15,12 @@ class JoinAction {
         let game_slug = action.payload.game_slug;
 
         if (!game_slug && action.payload.room_slug) {
-            await this.onJoinRoom(ws, action);
-            return action;
+            let room_slug = action.payload.room_slug;
+            let inRoom = await this.checkIsInRoom(ws, room_slug);
+            if (inRoom) {
+                this.subscribeToRoom(ws, room_slug);
+                return null;
+            }
         }
 
         let room = null;
@@ -30,8 +34,9 @@ class JoinAction {
         if (rooms && rooms.length > 0) {
             console.log(rooms);
             room = rooms[0];
-            if (!(await this.onJoined(ws, room.room_slug))) {
-                return this.onJoin(ws, action);
+            let inRoom = await this.checkIsInRoom(ws, room.room_slug);
+            if (inRoom) {
+                this.subscribeToRoom(ws, room.room_slug);
             }
             return null;
         }
@@ -43,18 +48,40 @@ class JoinAction {
 
         console.log("Found room: ", room.game_slug, room.room_slug, room.version);
 
-        await this.onPreJoinRoom(ws, action, room);
 
-        return action;
+        return await this.onPreJoinRoom(ws, action, room);
     }
 
-    async onJoinRoom(ws, action) {
-        let room_slug = action.payload.room_slug;
-        let room = await storage.getRoomMeta(room_slug);
-        await this.onPreJoinRoom(ws, action, room);
+    async checkIsInRoom(ws, room_slug) {
+        if (!room_slug)
+            return false;
+        // let room = await storage.getRoomMeta(room_slug);
+        let roomState = await storage.getRoomState(room_slug);
+        if (!roomState || !roomState.players || !roomState.players[ws.user.shortid]) {
+            return false;
+        }
+
+        return true;
+        // return await this.onPreJoinRoom(ws, action, room);
+    }
+
+    async subscribeToRoom(ws, room_slug, roomState) {
+        ws.subscribe(room_slug);
+        roomState = roomState || await storage.getRoomState(room_slug);
+        setTimeout(() => {
+            this.onJoined(ws, room_slug, roomState);
+        }, 0);
     }
 
     async onPreJoinRoom(ws, action, room) {
+
+        let room_slug = room.room_slug;
+        let inRoom = await this.checkIsInRoom(ws, room_slug);
+        if (inRoom) {
+            this.subscribeToRoom(ws, room_slug);
+            return null;
+        }
+
         //track user who is pending a join 
         this.pendingJoin(ws, room);
 
@@ -74,6 +101,7 @@ class JoinAction {
         }, 0);
 
         action.room_slug = room.room_slug;
+        return action;
     }
 
 
