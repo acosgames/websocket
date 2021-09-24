@@ -33,6 +33,20 @@ class Storage {
         await cache.setLocal(room_slug, state);
     }
 
+    async getRoomCounts(room_slug) {
+        let roomMeta = await this.getRoomMeta(room_slug);
+        if (!roomMeta)
+            return null;
+        let roomState = await this.getRoomState(room_slug);
+        if (!roomState || !roomState.players)
+            return null;
+        let playerList = Object.keys(roomState.players);
+        if (!playerList)
+            return null;
+
+        return { count: playerList.length, min: roomMeta.minplayers, max: roomMeta.maxplayers };
+    }
+
     addUser(ws) {
         this.users[ws.user.shortid] = ws;
     }

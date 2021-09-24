@@ -15,29 +15,42 @@ class JoinAction {
         if (!room_slug)
             return null;
 
+
         let roomState = await storage.getRoomState(room_slug);
+        if (!roomState) {
+            this.sendResponse(ws, 'notexist', room_slug);
+            return null;
+        }
+
+        let roomMeta = await storage.getRoomMeta(room_slug);
+        if (!roomMeta) {
+            this.sendResponse(ws, 'notexist', room_slug);
+            return null;
+        }
+
         let inRoom = await this.checkIsInRoom(ws, room_slug);
         if (!inRoom) {
-            let msg = {
-                type: 'notexist',
-                payload: {},
-                room_slug
-            };
+            let isFull = await this.checkIsRoomFull(room_slug);
+            if (isFull) {
+                this.sendResponse(ws, 'full', room_slug);
+                return null;
+            }
 
-            // console.log('[onJoined] Sending message: ', msg.payload);
-            let encoded = encode(msg);
-            ws.send(encoded, true, false);
-            return null;
+            return await this.onPreJoinRoom(ws, action, roomMeta);
         }
 
         this.subscribeToRoom(ws, room_slug);
         return null;
     }
 
-    async onJoin(ws, action) {
-        let isBeta = action.payload.beta || false;
-        let game_slug = action.payload.game_slug;
 
+    async onJoinGame(ws, action) {
+        let mode = action.payload.mode || 'rank';
+        if (mode != 'beta' && mode != 'rank') {
+            mode = 'rank'
+        }
+
+        let game_slug = action.payload.game_slug;
 
         let room = null;
         let rooms = await storage.getPlayerRoomsByGame(action.user.id, game_slug);
@@ -58,7 +71,7 @@ class JoinAction {
             return null;
         }
         else {
-            room = await r.findAnyRoom(ws.user, game_slug, isBeta);
+            room = await r.findAnyRoom(ws.user, game_slug, mode);
             if (!room)
                 return null;
         }
@@ -69,26 +82,6 @@ class JoinAction {
         return await this.onPreJoinRoom(ws, action, room);
     }
 
-    async checkIsInRoom(ws, room_slug) {
-        if (!room_slug)
-            return false;
-        // let room = await storage.getRoomMeta(room_slug);
-        let roomState = await storage.getRoomState(room_slug);
-        if (!roomState || !roomState.players || !roomState.players[ws.user.shortid]) {
-            return false;
-        }
-
-        return true;
-        // return await this.onPreJoinRoom(ws, action, room);
-    }
-
-    async subscribeToRoom(ws, room_slug, roomState) {
-        ws.subscribe(room_slug);
-        roomState = roomState || await storage.getRoomState(room_slug);
-        setTimeout(() => {
-            this.onJoined(ws, room_slug, roomState);
-        }, 0);
-    }
 
     async onPreJoinRoom(ws, action, room) {
 
@@ -119,15 +112,6 @@ class JoinAction {
 
         action.room_slug = room.room_slug;
         return action;
-    }
-
-
-
-
-    async pendingJoin(ws, room) {
-        if (!ws.pending)
-            ws.pending = {};
-        ws.pending[room.room_slug] = true;
     }
 
     async onJoinResponse(room_slug, gamestate) {
@@ -198,54 +182,58 @@ class JoinAction {
     }
 
 
-    async onJoinResponse2(msg) {
-        try {
-            console.log("Join Response: ", msg);
-            if (!msg.payload.id)
-                return true;
-
-            let id = msg.payload.id;
-            let room_slug = msg.payload.room_slug;
-
-            let ws = await storage.getUser(id);
-            if (!ws) {
-                console.error("[onJoinResponse] missing websocket for: ", id);
-                return true;
-            }
-
-            let pending = ws.pending[room_slug];
-            if (!pending) {
-                console.error("[onJoinResponse] missing pending for: ", id, room_slug);
-                //return true;
-            }
-            else {
-                delete ws.pending[room_slug];
-            }
-
-
-
-            if (msg.type == 'join') {
-                await this.onJoined(ws, room_slug);
-
-                return true;
-            }
-
-            if (msg.type == 'full') {
-                let response = { type: 'gamefull', payload: { room_slug } };
-                ws.send(encode(response), true, false);
-                return true;
-            }
-
-            let response = { type: 'gameinvalid', payload: { room_slug } };
-            ws.send(encode(response), true, false);
-            return true
-        }
-        catch (e) {
-            console.error(e);
-            return false
-        }
-
+    sendResponse(ws, type, room_slug) {
+        let msg = {
+            type,
+            room_slug
+        };
+        let encoded = encode(msg);
+        ws.send(encoded, true, false);
     }
+
+    async checkIsRoomFull(room_slug) {
+        if (!room_slug)
+            return true;
+
+        let result = await storage.getRoomCounts(room_slug);
+        if (!result)
+            return true;
+
+        if (result.count >= result.max)
+            return true;
+
+        return false;
+    }
+
+    async checkIsInRoom(ws, room_slug) {
+        if (!room_slug)
+            return false;
+        // let room = await storage.getRoomMeta(room_slug);
+        let roomState = await storage.getRoomState(room_slug);
+        if (!roomState || !roomState.players || !roomState.players[ws.user.shortid]) {
+            return false;
+        }
+
+        return true;
+        // return await this.onPreJoinRoom(ws, action, room);
+    }
+
+    async subscribeToRoom(ws, room_slug, roomState) {
+        ws.subscribe(room_slug);
+        roomState = roomState || await storage.getRoomState(room_slug);
+        setTimeout(() => {
+            this.onJoined(ws, room_slug, roomState);
+        }, 0);
+    }
+
+    async pendingJoin(ws, room) {
+        if (!ws.pending)
+            ws.pending = {};
+        ws.pending[room.room_slug] = true;
+    }
+
+
+
 }
 
 module.exports = new JoinAction();
