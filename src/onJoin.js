@@ -10,21 +10,38 @@ function cloneObj(obj) {
 
 class JoinAction {
 
+    async onJoinRoom(ws, action) {
+        let room_slug = action.payload.room_slug;
+        if (!room_slug)
+            return null;
+
+        let roomState = await storage.getRoomState(room_slug);
+        let inRoom = await this.checkIsInRoom(ws, room_slug);
+        if (!inRoom) {
+            let msg = {
+                type: 'notexist',
+                payload: {},
+                room_slug
+            };
+
+            // console.log('[onJoined] Sending message: ', msg.payload);
+            let encoded = encode(msg);
+            ws.send(encoded, true, false);
+            return null;
+        }
+
+        this.subscribeToRoom(ws, room_slug);
+        return null;
+    }
+
     async onJoin(ws, action) {
         let isBeta = action.payload.beta || false;
         let game_slug = action.payload.game_slug;
 
-        if (!game_slug && action.payload.room_slug) {
-            let room_slug = action.payload.room_slug;
-            let inRoom = await this.checkIsInRoom(ws, room_slug);
-            if (inRoom) {
-                this.subscribeToRoom(ws, room_slug);
-                return null;
-            }
-        }
 
         let room = null;
-        let rooms = await r.findPlayerRoom(action.user.id, game_slug);
+        let rooms = await storage.getPlayerRoomsByGame(action.user.id, game_slug);
+        // let rooms = await r.findPlayerRoom(action.user.id, game_slug);
         // let playerRating = await r.findPlayerRating(action.user.id, game_slug);
 
         if (!ws.user.ratings) {

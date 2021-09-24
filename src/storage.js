@@ -51,8 +51,25 @@ class Storage {
 
     }
 
-    async getUserRooms(id) {
+    async getPlayerRoomsByGame(id, game_slug) {
+        let key = `rooms/${game_slug}/${id}`;
+        let rooms = await cache.get(key);
+        if (rooms)
+            return rooms;
+        rooms = await r.findPlayerRoom(id, game_slug);
+        cache.set(key, rooms, 100);
+        return rooms;
+    }
 
+    async getPlayerRooms(id) {
+        let key = `rooms/${id}`;
+        let rooms = await cache.get(key);
+        if (rooms)
+            return rooms;
+
+        rooms = await r.findPlayerRooms(id);
+        cache.set(key, rooms, 100);
+        return rooms;
     }
 
     async checkUserInGame(id, game_slug) {
