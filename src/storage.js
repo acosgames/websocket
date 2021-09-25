@@ -33,6 +33,10 @@ class Storage {
         await cache.setLocal(room_slug, state);
     }
 
+    async getGameInfo(game_slug) {
+
+    }
+
     async getRoomCounts(room_slug) {
         let roomMeta = await this.getRoomMeta(room_slug);
         if (!roomMeta)
@@ -49,12 +53,14 @@ class Storage {
 
     addUser(ws) {
         this.users[ws.user.shortid] = ws;
+        cache.set(ws.user.shortid, 1);
     }
 
     removeUser(ws) {
         let id = ws.user.shortid;
         if (this.users[id])
             delete this.users[id];
+        cache.del(ws.user.shortid);
     }
 
     getUser(id) {

@@ -89,6 +89,7 @@ class WSNode {
     }
 
     onClientClose(ws, code, message) {
+        storage.removeUser(ws);
         console.log("Client Closed: ", ws.user.shortid, ws.user.displayname);
     }
 
