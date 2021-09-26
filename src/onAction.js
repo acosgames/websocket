@@ -17,7 +17,7 @@ class Action {
         this.actions = {};
         this.actions['joingame'] = JoinAction.onJoinGame.bind(JoinAction);
         this.actions['joinroom'] = JoinAction.onJoinRoom.bind(JoinAction);
-        this.actions['spectate'] = JoinAction.onJoinSpectate.bind(JoinAction);
+        // this.actions['spectate'] = JoinAction.onJoinSpectate.bind(JoinAction);
         this.actions['leave'] = onLeave;
         this.actions['skip'] = onSkip; //handled by timer in gameserver, not used here
         this.actions['ping'] = onPing;

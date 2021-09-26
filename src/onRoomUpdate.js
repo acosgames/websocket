@@ -92,6 +92,7 @@ class RoomUpdate {
 
             // setTimeout(() => {
             let encoded = encode(copy);
+            console.log("Publishing [" + room_slug + "] with " + encoded.byteLength + ' bytes');
             app.publish(room_slug, encoded, true, false)
             // }, 200)
 

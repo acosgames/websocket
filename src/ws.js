@@ -40,6 +40,13 @@ class WSNode {
     async connect(options) {
         options = options || this.options
 
+        while (!(rabbitmq.isActive() && redis.isActive)) {
+
+            console.warn("[WebSocket] waiting on rabbitmq and redis...");
+            await this.sleep(1000);
+            //return;
+        }
+
         this.options = options || {
             idleTimeout: 300,
             maxBackpressure: 1024,
@@ -65,12 +72,7 @@ class WSNode {
 
         storage.setWSApp(this.app);
 
-        while (!(rabbitmq.isActive() && redis.isActive)) {
 
-            console.warn("[WebSocket] waiting on rabbitmq and redis...");
-            await this.sleep(1000);
-            //return;
-        }
         return this.app;
     }
 

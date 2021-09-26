@@ -44,4 +44,7 @@ async function start() {
 
 start();
 
-
+process.on('SIGINT', function () {
+    console.log('SIGINT');
+    process.exit();
+});

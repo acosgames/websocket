@@ -1,5 +1,6 @@
 const storage = require('./storage');
 const { encode } = require('fsg-shared/util/encoder');
+const rabbitmq = require('fsg-shared/services/rabbitmq');
 const r = require('fsg-shared/services/room');
 
 function cloneObj(obj) {
@@ -43,8 +44,41 @@ class JoinAction {
         return null;
     }
 
-
     async onJoinGame(ws, action) {
+        let mode = action.payload.mode || 'rank';
+        if (mode != 'beta' && mode != 'rank') {
+            mode = 'rank'
+        }
+
+        let game_slug = action.payload.game_slug;
+
+        try {
+            let msg = {
+                user: {
+                    id: ws.user.shortid,
+                    name: ws.user.displayname
+                },
+                game_slug,
+                mode
+            }
+
+            await rabbitmq.publishQueue('joinQueue', msg);
+
+            this.pendingJoin(ws, game_slug + mode);
+
+            //tell user they have joined the queue
+            let response = { type: 'queue', game_slug, mode }
+            ws.send(encode(response), true, false);
+        }
+        catch (e) {
+            console.error(e);
+        }
+
+        return null;
+    }
+
+
+    async onJoinGame2(ws, action) {
         let mode = action.payload.mode || 'rank';
         if (mode != 'beta' && mode != 'rank') {
             mode = 'rank'
@@ -122,17 +156,28 @@ class JoinAction {
             if (gamestate && gamestate.events && gamestate.events.join) {
                 let id = gamestate.events.join.id;
                 let ws = await storage.getUser(id);
+
+                let roomMeta = await storage.getRoomMeta(room_slug);
+                if (!roomMeta)
+                    return false;
+
                 if (!ws) {
                     console.error("[onJoinResponse] missing websocket for: ", id);
+
+                    // let action = { type: 'leave', room_slug }
+                    // action.user = { id }
+                    // await rabbitmq.publishQueue(roomMeta.game_slug, action);
+
                     return false;
                 }
 
-                let pending = ws.pending[room_slug];
+                let key = roomMeta.game_slug + roomMeta.mode;
+                let pending = ws.pending[key];
                 if (!pending) {
                     console.error("[onJoinResponse] missing pending for: ", id, room_slug);
                 }
                 else {
-                    delete ws.pending[room_slug];
+                    delete ws.pending[key];
                 }
 
                 await this.onJoined(ws, room_slug);
@@ -159,15 +204,19 @@ class JoinAction {
         roomState = roomState || await storage.getRoomState(room_slug);
 
 
-        if (roomState && roomState.players[ws.user.shortid]) {
+        if (roomState) {
 
             let room = await storage.getRoomMeta(room_slug);
-
+            let mode = r.getGameModeName(room.mode);
+            let game_slug = room.game_slug;
+            let version = room.mode == 'beta' ? room.latest_version : room.version;
             let msg = {
                 type: 'joined',
                 payload: cloneObj(roomState),
-                beta: room.istest,
-                room_slug
+                mode,
+                room_slug,
+                game_slug,
+                version
             };
 
             // console.log('[onJoined] Sending message: ', msg.payload);
@@ -226,10 +275,10 @@ class JoinAction {
         }, 0);
     }
 
-    async pendingJoin(ws, room) {
+    async pendingJoin(ws, queue) {
         if (!ws.pending)
             ws.pending = {};
-        ws.pending[room.room_slug] = true;
+        ws.pending[queue] = true;
     }
 
 
