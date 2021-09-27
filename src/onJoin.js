@@ -209,13 +209,15 @@ class JoinAction {
             let room = await storage.getRoomMeta(room_slug);
             let mode = r.getGameModeName(room.mode);
             let game_slug = room.game_slug;
-            let version = room.mode == 'beta' ? room.latest_version : room.version;
+            let gameid = room.gameid;
+            let version = room.version;
             let msg = {
                 type: 'joined',
                 payload: cloneObj(roomState),
                 mode,
                 room_slug,
                 game_slug,
+                gameid,
                 version
             };
 
