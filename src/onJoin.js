@@ -196,6 +196,28 @@ class JoinAction {
         }
     }
 
+    async onLeaveQueue(ws) {
+
+
+        try {
+            let msg = {
+                user: {
+                    id: ws.user.shortid
+                }
+            }
+
+            await rabbitmq.publishQueue('removeQueue', msg);
+
+            //tell user they have joined the queue
+            let response = { type: 'leavequeue' }
+            ws.send(encode(response), true, false);
+        }
+        catch (e) {
+            console.error(e);
+        }
+
+        return null;
+    }
     async onJoined(ws, room_slug, roomState) {
         let id = ws.user.id;
 
