@@ -122,11 +122,12 @@ class Action {
             return;
 
         try {
-            let exists = await mq.assertQueue(game_slug);
-            if (!exists) {
-                await mq.publishQueue('loadGame', msg)
-            }
-            await mq.publishQueue(game_slug, msg);
+            // let exists = await mq.assertQueue(game_slug);
+            // if (!exists) {
+            //     await mq.publishQueue('loadGame', msg)
+            // }
+            let key = game_slug + '/' + msg.room_slug;
+            await mq.publish('action', key, msg);
         }
         catch (e) {
             console.error(e);

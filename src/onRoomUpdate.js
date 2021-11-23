@@ -48,6 +48,20 @@ class RoomUpdate {
 
             storage.setRoomState(room_slug, gamestate);
 
+            //skip doing any work if our websocket server doesn't have any of the users.
+            let usersFound = false;
+            for (var id of playerList) {
+                let ws = await storage.getUser(id);
+                if (!ws) {
+                    continue;
+                }
+                usersFound = true;
+                break;
+            }
+
+            if (!usersFound)
+                return true;
+
             if (msg.type == 'join') {
                 await JoinAction.onJoinResponse(room_slug, gamestate);
             }
