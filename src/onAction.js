@@ -26,7 +26,7 @@ class Action {
 
     async onClientAction(ws, message, isBinary) {
         profiler.StartTime('ActionUpdateLoop');
-        profiler.StartTime('OnClientAction');
+        // profiler.StartTime('OnClientAction');
         let unsafeAction = null;
         try {
             unsafeAction = decode(message)
@@ -66,7 +66,7 @@ class Action {
             return;
 
         await this.forwardAction(action);
-        profiler.EndTime('OnClientAction');
+        // profiler.EndTime('OnClientAction');
     }
 
     async gameAction(ws, action) {
@@ -99,6 +99,7 @@ class Action {
         if (roomState.next.id == '*' || roomState.next.id == ws.user.shortid) {
             if (roomState.timer.seq != action.seq) {
                 JoinAction.subscribeToRoom(ws, action.room_slug, roomState);
+                console.error("User failed validation: ", roomState.timer, roomState.next);
                 return false;
             }
             return true;

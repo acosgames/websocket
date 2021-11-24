@@ -84,7 +84,7 @@ class Storage {
     async getPlayerRooms(id) {
         let key = `rooms/${id}`;
         let rooms = await cache.getremote(key);
-        if (rooms)
+        if (rooms && rooms.length > 0)
             return rooms;
 
         rooms = await r.findPlayerRooms(id);

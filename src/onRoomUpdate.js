@@ -15,19 +15,26 @@ class RoomUpdate {
         this.setup();
     }
 
-    setup() {
+    async setup() {
         if (!mq.isActive() || !redis.isActive) {
             setTimeout(this.setup.bind(this), 2000);
             return;
         }
 
-        mq.subscribe('ws', 'onRoomUpdate', this.onRoomUpdate.bind(this));
+        let qWS = await mq.findExistingQueue('ws');;
+        await mq.subscribeQueue(qWS, this.onRoomUpdate.bind(this));
+
+        setTimeout(async () => {
+            let queueKey = await mq.subscribe('ws', 'onRoomUpdate', this.onRoomUpdate.bind(this), qWS);
+        }, 3000)
+
+
         //mq.subscribe('ws', 'onJoinResponse', JoinAction.onJoinResponse.bind(JoinAction));
     }
 
 
     async onRoomUpdate(msg) {
-        profiler.StartTime('onRoomUpdate');
+        // profiler.StartTime('onRoomUpdate');
         let room_slug = msg.room_slug;
         if (!room_slug)
             return true;
@@ -111,7 +118,7 @@ class RoomUpdate {
             // }, 200)
 
             profiler.EndTime('ActionUpdateLoop');
-            profiler.EndTime('onRoomUpdate');
+            // profiler.EndTime('onRoomUpdate');
             return true;
         }
         catch (e) {

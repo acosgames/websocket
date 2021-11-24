@@ -225,7 +225,6 @@ class JoinAction {
         ws.subscribe(room_slug);
         roomState = roomState || await storage.getRoomState(room_slug);
 
-
         if (roomState) {
 
             let room = await storage.getRoomMeta(room_slug);

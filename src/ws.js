@@ -3,7 +3,7 @@ const UWSjs = require('uWebSockets.js/uws');
 const uws = UWSjs.App();
 const events = require('events');
 const auth = require('./authentication');
-
+const JoinAction = require('./onJoin');
 const InstanceLocalService = require('fsg-shared/services/instancelocal');
 const local = new InstanceLocalService();
 
@@ -95,7 +95,7 @@ class WSNode {
         console.log("Client Closed: ", ws.user.shortid, ws.user.displayname);
     }
 
-    onClientOpen(ws) {
+    async onClientOpen(ws) {
         if (!ws._logged) {
             console.log('unauthorized user: ', ws)
             ws.end()
@@ -103,6 +103,13 @@ class WSNode {
         }
 
         storage.addUser(ws);
+
+        let rooms = await storage.getPlayerRooms(ws.user.shortid);
+        for (var i = 0; i < rooms.length; i++) {
+            JoinAction.subscribeToRoom(ws, rooms[i].room_slug);
+            // ws.subscribe(rooms[i].room_slug);
+            console.error("Subscribing user: ", ws.user, rooms[i].room_slug);
+        }
         // this.users[ws.user.shortid] = ws;
         // ws.subscribe(ws.user.shortid);
 
