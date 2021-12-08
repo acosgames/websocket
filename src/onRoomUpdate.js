@@ -98,8 +98,8 @@ class RoomUpdate {
 
             let isGameover = copy.type == 'finish' || (gamestate.events && gamestate.events.gameover);
             if (copy.type == 'error' || isGameover || playerList.length == 0) {
-                if (isGameover)
-                    this.updatePlayerRatings(copy);
+                // if (isGameover)
+                //     this.updatePlayerRatings(copy);
 
                 setTimeout(() => {
                     this.killGameRoom(copy);

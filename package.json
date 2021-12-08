@@ -6,7 +6,7 @@
   "scripts": {
     "start": "npm run dev",
     "dev": "pm2 start index.js --name fsg-websocket --node-args=\"--inspect=10004 --trace-warnings\" --watch \". ../fsg-shared\" --ignore-watch \"sessions public package.json node_modules\"",
-    "installws": "yarn add uWebSockets.js@uNetworking/uWebSockets.js#v18.14.0",
+    "installws": "yarn add uWebSockets.js@uNetworking/uWebSockets.js#v20.4.0",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
@@ -19,7 +19,7 @@
     "pako": "^2.0.3",
     "priorityqueuejs": "^2.0.0",
     "pson": "^2.0.0",
-    "uWebSockets.js": "uNetworking/uWebSockets.js#v18.14.0",
+    "uWebSockets.js": "uNetworking/uWebSockets.js#v20.4.0",
     "uuid": "^8.3.2",
     "websocket": "^1.0.33"
   }
