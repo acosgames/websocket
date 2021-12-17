@@ -206,7 +206,7 @@ class JoinAction {
                 }
             }
 
-            await rabbitmq.publishQueue('removeQueue', msg);
+            await rabbitmq.publishQueue('leaveQueue', msg);
 
             //tell user they have joined the queue
             let response = { type: 'leavequeue' }
