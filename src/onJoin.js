@@ -209,8 +209,9 @@ class JoinAction {
             await rabbitmq.publishQueue('leaveQueue', msg);
 
             //tell user they have joined the queue
-            let response = { type: 'leavequeue' }
-            ws.send(encode(response), true, false);
+            // let response = { type: 'leavequeue' }
+            // if (ws && ws)
+            //     ws.send(encode(response), true, false);
         }
         catch (e) {
             console.error(e);
