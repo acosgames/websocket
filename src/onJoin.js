@@ -46,7 +46,7 @@ class JoinAction {
 
     async onJoinGame(ws, action) {
         let mode = action.payload.mode || 'rank';
-        if (mode != 'beta' && mode != 'rank') {
+        if (mode != 'experimental' && mode != 'rank') {
             mode = 'rank'
         }
 
@@ -80,7 +80,7 @@ class JoinAction {
 
     async onJoinGame2(ws, action) {
         let mode = action.payload.mode || 'rank';
-        if (mode != 'beta' && mode != 'rank') {
+        if (mode != 'experimental' && mode != 'rank') {
             mode = 'rank'
         }
 
@@ -140,7 +140,7 @@ class JoinAction {
 
         ws.subscribe(room.room_slug);
         setTimeout(() => {
-            let response = { type: 'joining', room_slug: room.room_slug, beta: room.istest, payload: {} }
+            let response = { type: 'joining', room_slug: room.room_slug, experimental: room.istest, payload: {} }
             ws.send(encode(response), true, false);
         }, 0);
 
