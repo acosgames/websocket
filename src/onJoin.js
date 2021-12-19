@@ -249,7 +249,9 @@ class JoinAction {
             return true;
         } else {
             console.error("[onJoined] Missing roomState for join response: ", id, room_slug);
-            await r.removePlayerRoom(ws.user.shortid, room_slug);
+            this.sendResponse(ws, 'notexist', room_slug);
+            //await r.removePlayerRoom(ws.user.shortid, room_slug);
+            r.deleteRoom(room_slug);
             return false;
         }
     }
