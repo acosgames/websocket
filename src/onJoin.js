@@ -229,7 +229,7 @@ class JoinAction {
         if (roomState) {
 
             let room = await storage.getRoomMeta(room_slug);
-            let mode = r.getGameModeName(room.mode);
+            let mode = room.mode;
             let game_slug = room.game_slug;
             let gameid = room.gameid;
             let version = room.version;
