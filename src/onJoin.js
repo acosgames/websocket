@@ -45,10 +45,26 @@ class JoinAction {
     }
 
     async onJoinGame(ws, action) {
+
+        if (ws && ws.user && ws.user.shortid) {
+            let rooms = await storage.getPlayerRooms(ws.user.shortid);
+            if (rooms.length > 0) {
+                let response = { type: 'inrooms', payload: rooms }
+                ws.send(encode(response), true, false);
+                return null;
+            }
+        }
+        else {
+            return null;
+        }
+
+
+
         let mode = action.payload.mode || 'rank';
         if (mode != 'experimental' && mode != 'rank') {
             mode = 'rank'
         }
+
 
         let game_slug = action.payload.game_slug;
 
@@ -140,7 +156,7 @@ class JoinAction {
 
         ws.subscribe(room.room_slug);
         setTimeout(() => {
-            let response = { type: 'joining', room_slug: room.room_slug, experimental: room.istest, payload: {} }
+            let response = { type: 'joining', room_slug: room.room_slug, mode: room.mode, payload: {} }
             ws.send(encode(response), true, false);
         }, 0);
 
@@ -223,10 +239,11 @@ class JoinAction {
         let id = ws.user.id;
 
         // console.log("[onJoined] Subscribing and Sending to client.", id, room_slug);
-        ws.subscribe(room_slug);
+
         roomState = roomState || await storage.getRoomState(room_slug);
 
         if (roomState) {
+            ws.subscribe(room_slug);
 
             let room = await storage.getRoomMeta(room_slug);
             let mode = room.mode;
@@ -239,7 +256,7 @@ class JoinAction {
                 mode,
                 room_slug,
                 game_slug,
-                gameid,
+                // gameid,
                 version
             };
 
@@ -251,7 +268,7 @@ class JoinAction {
             console.error("[onJoined] Missing roomState for join response: ", id, room_slug);
             this.sendResponse(ws, 'notexist', room_slug);
             //await r.removePlayerRoom(ws.user.shortid, room_slug);
-            r.deleteRoom(room_slug);
+            storage.cleanupRoom(room_slug);
             return false;
         }
     }

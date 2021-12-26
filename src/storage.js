@@ -102,14 +102,30 @@ class Storage {
 
     async cleanupRoom(room_slug) {
 
-        Promise.all([
-            cache.del(room_slug),
-            cache.del(room_slug + '/meta'),
-            cache.del(room_slug + '/timer'),
-            cache.del(room_slug + '/p')
-        ]);
+        try {
+            let roomState = await this.getRoomState(room_slug);
+            let players = roomState?.players;
+            if (players) {
 
-        r.deleteRoom(room_slug);
+                for (var id in players) {
+                    cache.del(`rooms/${id}`);
+                }
+
+            }
+
+            Promise.all([
+                cache.del(room_slug),
+                cache.del(room_slug + '/meta'),
+                cache.del(room_slug + '/timer'),
+                cache.del(room_slug + '/p')
+            ]);
+
+            r.deleteRoom(room_slug);
+        }
+        catch (e) {
+            console.error(e);
+        }
+
     }
 
 }

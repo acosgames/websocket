@@ -72,7 +72,10 @@ class RoomUpdate {
             if (msg.type == 'join') {
                 await JoinAction.onJoinResponse(room_slug, gamestate);
             }
-
+            else if (msg.type == 'noshow') {
+                if (msg?.payload?.error)
+                    copy.error = msg.payload.error;
+            }
 
             let app = storage.getWSApp();
 
@@ -97,7 +100,7 @@ class RoomUpdate {
 
 
             let isGameover = copy.type == 'finish' || (gamestate.events && gamestate.events.gameover);
-            if (copy.type == 'error' || isGameover || playerList.length == 0) {
+            if (copy.type == 'noshow' || copy.type == 'error' || isGameover || playerList.length == 0) {
                 // if (isGameover)
                 //     this.updatePlayerRatings(copy);
 

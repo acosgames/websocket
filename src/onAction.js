@@ -21,6 +21,7 @@ class Action {
         // this.actions['spectate'] = JoinAction.onJoinSpectate.bind(JoinAction);
         this.actions['leave'] = onLeave;
         this.actions['skip'] = onSkip; //handled by timer in gameserver, not used here
+        this.actions['gamestart'] = onSkip;
         this.actions['ping'] = onPing;
     }
 
@@ -95,6 +96,10 @@ class Action {
             return false;
 
 
+        if (action.type == 'ready') {
+            action.payload = true; //force payload, incase someone tries to send something
+            return true;
+        }
 
         if (roomState.next.id == '*' || roomState.next.id == ws.user.shortid) {
             if (roomState.timer.seq != action.seq) {

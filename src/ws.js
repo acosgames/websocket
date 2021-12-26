@@ -108,7 +108,7 @@ class WSNode {
         for (var i = 0; i < rooms.length; i++) {
             JoinAction.subscribeToRoom(ws, rooms[i].room_slug);
             // ws.subscribe(rooms[i].room_slug);
-            console.error("Subscribing user: ", ws.user, rooms[i].room_slug);
+            console.error("Subscribing user: ", ws.user.shortid, rooms[i].room_slug);
         }
         // this.users[ws.user.shortid] = ws;
         // ws.subscribe(ws.user.shortid);
