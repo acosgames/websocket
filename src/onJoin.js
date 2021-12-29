@@ -37,6 +37,10 @@ class JoinAction {
                 return null;
             }
 
+            //track user who is pending a join 
+            let key = roomMeta.game_slug + roomMeta.mode;
+            this.pendingJoin(ws, key);
+
             return await this.onPreJoinRoom(ws, action, roomMeta);
         }
 
@@ -49,7 +53,12 @@ class JoinAction {
         if (ws && ws.user && ws.user.shortid) {
             let rooms = await storage.getPlayerRooms(ws.user.shortid);
             if (rooms.length > 0) {
+                for (var i = 0; i < rooms.length; i++) {
+                    let roomState = await storage.getRoomState(action.room_slug);
+                    rooms[i].payload = roomState;
+                }
                 let response = { type: 'inrooms', payload: rooms }
+                console.log("onJoinGame 1");
                 ws.send(encode(response), true, false);
                 return null;
             }
@@ -58,16 +67,12 @@ class JoinAction {
             return null;
         }
 
-
-
         let mode = action.payload.mode || 'rank';
         if (mode != 'experimental' && mode != 'rank') {
             mode = 'rank'
         }
 
-
         let game_slug = action.payload.game_slug;
-
         try {
             let msg = {
                 user: {
@@ -84,6 +89,7 @@ class JoinAction {
 
             //tell user they have joined the queue
             let response = { type: 'queue', game_slug, mode }
+            console.log("onJoinGame 2");
             ws.send(encode(response), true, false);
         }
         catch (e) {
@@ -91,45 +97,6 @@ class JoinAction {
         }
 
         return null;
-    }
-
-
-    async onJoinGame2(ws, action) {
-        let mode = action.payload.mode || 'rank';
-        if (mode != 'experimental' && mode != 'rank') {
-            mode = 'rank'
-        }
-
-        let game_slug = action.payload.game_slug;
-
-        let room = null;
-        let rooms = await storage.getPlayerRoomsByGame(action.user.id, game_slug);
-        // let rooms = await r.findPlayerRoom(action.user.id, game_slug);
-        // let playerRating = await r.findPlayerRating(action.user.id, game_slug);
-
-        if (!ws.user.ratings) {
-            ws.user.ratings = {};
-        }
-        //ws.user.ratings[game_slug] = playerRating.rating;
-        if (rooms && rooms.length > 0) {
-            console.log(rooms);
-            room = rooms[0];
-            let inRoom = await this.checkIsInRoom(ws, room.room_slug);
-            if (inRoom) {
-                this.subscribeToRoom(ws, room.room_slug);
-            }
-            return null;
-        }
-        else {
-            room = await r.findAnyRoom(ws.user, game_slug, mode);
-            if (!room)
-                return null;
-        }
-
-        console.log("Found room: ", room.game_slug, room.room_slug, room.version);
-
-
-        return await this.onPreJoinRoom(ws, action, room);
     }
 
 
@@ -142,14 +109,14 @@ class JoinAction {
             return null;
         }
 
-        //track user who is pending a join 
-        this.pendingJoin(ws, room);
+
 
         //these are used by the gameserver to add the user to specific room
         action.user.name = ws.user.displayname
 
         if (!room) {
             let response = { type: 'retry', payload: { type: action.type } }
+            console.log("onPreJoinRoom 1");
             ws.send(encode(response), true, false);
             return null;
         }
@@ -157,6 +124,7 @@ class JoinAction {
         ws.subscribe(room.room_slug);
         setTimeout(() => {
             let response = { type: 'joining', room_slug: room.room_slug, mode: room.mode, payload: {} }
+            console.log("onPreJoinRoom 1");
             ws.send(encode(response), true, false);
         }, 0);
 
@@ -166,9 +134,6 @@ class JoinAction {
 
     async onJoinResponse(room_slug, gamestate) {
         try {
-            // let playerList = Object.keys(action.payload.players);
-            // let savedRoom = await storage.getRoomState(room_slug);
-
             if (gamestate && gamestate.events && gamestate.events.join) {
                 let id = gamestate.events.join.id;
                 let ws = await storage.getUser(id);
@@ -179,11 +144,6 @@ class JoinAction {
 
                 if (!ws) {
                     console.error("[onJoinResponse] missing websocket for: ", id);
-
-                    // let action = { type: 'leave', room_slug }
-                    // action.user = { id }
-                    // await rabbitmq.publishQueue(roomMeta.game_slug, action);
-
                     return false;
                 }
 
@@ -198,12 +158,7 @@ class JoinAction {
 
                 await this.onJoined(ws, room_slug);
             }
-            // for (var i = 0; i < playerList.length; i++) {
-            //     let id = playerList[i];
-            //     if (!(id in savedRoom.players)) {
 
-            //     }
-            // }
             return true;
         }
         catch (e) {
@@ -262,6 +217,7 @@ class JoinAction {
 
             // console.log('[onJoined] Sending message: ', msg.payload);
             let encoded = encode(msg);
+            console.log("onJoined 1");
             ws.send(encoded, true, false);
             return true;
         } else {
@@ -280,6 +236,7 @@ class JoinAction {
             room_slug
         };
         let encoded = encode(msg);
+        console.log("sendResponse 1");
         ws.send(encoded, true, false);
     }
 
@@ -318,10 +275,10 @@ class JoinAction {
         }, 0);
     }
 
-    async pendingJoin(ws, queue) {
+    async pendingJoin(ws, room_slug) {
         if (!ws.pending)
             ws.pending = {};
-        ws.pending[queue] = true;
+        ws.pending[room_slug] = true;
     }
 
 

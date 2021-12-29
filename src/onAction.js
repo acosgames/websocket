@@ -21,12 +21,15 @@ class Action {
         // this.actions['spectate'] = JoinAction.onJoinSpectate.bind(JoinAction);
         this.actions['leave'] = onLeave;
         this.actions['skip'] = onSkip; //handled by timer in gameserver, not used here
+        this.actions['pregame'] = onSkip;
+        this.actions['type'] = onSkip;
         this.actions['gamestart'] = onSkip;
+        this.actions['gameover'] = onSkip;
         this.actions['ping'] = onPing;
     }
 
     async onClientAction(ws, message, isBinary) {
-        profiler.StartTime('ActionUpdateLoop');
+        // profiler.StartTime('ActionUpdateLoop');
         // profiler.StartTime('OnClientAction');
         let unsafeAction = null;
         try {

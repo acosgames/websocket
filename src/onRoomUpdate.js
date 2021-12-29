@@ -99,7 +99,7 @@ class RoomUpdate {
                 }
 
 
-            let isGameover = copy.type == 'finish' || (gamestate.events && gamestate.events.gameover);
+            let isGameover = copy.type == 'gameover' || (gamestate.events && gamestate.events.gameover);
             if (copy.type == 'noshow' || copy.type == 'error' || isGameover || playerList.length == 0) {
                 // if (isGameover)
                 //     this.updatePlayerRatings(copy);
@@ -120,8 +120,6 @@ class RoomUpdate {
             app.publish(room_slug, encoded, true, false)
             // }, 200)
 
-            profiler.EndTime('ActionUpdateLoop');
-            // profiler.EndTime('onRoomUpdate');
             return true;
         }
         catch (e) {
