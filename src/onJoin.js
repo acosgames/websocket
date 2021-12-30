@@ -1,7 +1,7 @@
 const storage = require('./storage');
-const { encode } = require('fsg-shared/util/encoder');
-const rabbitmq = require('fsg-shared/services/rabbitmq');
-const r = require('fsg-shared/services/room');
+const { encode } = require('shared/util/encoder');
+const rabbitmq = require('shared/services/rabbitmq');
+const r = require('shared/services/room');
 
 function cloneObj(obj) {
     if (typeof obj === 'object')

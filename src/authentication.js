@@ -1,8 +1,8 @@
 const { v4: uuidv4 } = require('uuid');
 // const cookie = require('cookie')
-const PersonService = require('fsg-shared/services/person');
+const PersonService = require('shared/services/person');
 const persons = new PersonService();
-const credutil = require('fsg-shared/util/credentials');
+const credutil = require('shared/util/credentials');
 
 //use this class to implement a fancy authentication
 class Authentication {

@@ -1,4 +1,4 @@
-const { encode } = require('fsg-shared/util/encoder');
+const { encode } = require('shared/util/encoder');
 
 module.exports = async function onPing(ws, action) {
     let clientTime = action.payload;

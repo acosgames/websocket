@@ -1,13 +1,13 @@
-const { encode } = require('fsg-shared/util/encoder');
+const { encode } = require('shared/util/encoder');
 
 const storage = require('./storage');
 
-const mq = require('fsg-shared/services/rabbitmq');
-const redis = require('fsg-shared/services/redis');
+const mq = require('shared/services/rabbitmq');
+const redis = require('shared/services/redis');
 const JoinAction = require('./onJoin');
-const profiler = require('fsg-shared/util/profiler');
-const delta = require('fsg-shared/util/delta');
-const r = require('fsg-shared/services/room');
+const profiler = require('shared/util/profiler');
+const delta = require('shared/util/delta');
+const r = require('shared/services/room');
 
 class RoomUpdate {
     constructor() {

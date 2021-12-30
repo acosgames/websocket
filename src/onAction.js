@@ -3,11 +3,11 @@ const onLeave = require('./onLeave');
 const onSkip = require('./onSkip');
 const onPing = require('./onPing');
 
-const { decode } = require('fsg-shared/util/encoder');
+const { decode } = require('shared/util/encoder');
 
-const mq = require('fsg-shared/services/rabbitmq');
+const mq = require('shared/services/rabbitmq');
 const storage = require('./storage');
-const profiler = require('fsg-shared/util/profiler');
+const profiler = require('shared/util/profiler');
 
 // console.log = () => { };
 

@@ -1,5 +1,5 @@
 
-const { encode, serialize, deserialize } = require('fsg-shared/util/encoder');
+const { encode, serialize, deserialize } = require('shared/util/encoder');
 
 class Messenger {
 
