@@ -107,33 +107,6 @@
   "resolved" "https://registry.npmjs.org/follow-redirects/-/follow-redirects-1.14.0.tgz"
   "version" "1.14.0"
 
-"fsg-shared@file:../fsg-shared":
-  "resolved" "file:../fsg-shared"
-  "version" "1.0.0"
-  dependencies:
-    "@octokit/rest" "^18.2.1"
-    "amqplib" "^0.8.0"
-    "aws-sdk" "^2.839.0"
-    "axios" "^0.21.1"
-    "biguint-format" "^1.0.2"
-    "date-fns" "^2.16.1"
-    "flake-idgen" "^1.4.0"
-    "flakeid" "^1.0.0"
-    "jsonwebtoken" "^8.5.1"
-    "moment" "^2.29.1"
-    "moment-timezone" "^0.5.32"
-    "multer" "^1.4.2"
-    "multer-s3" "^2.9.0"
-    "multer-s3-transform" "^2.10.3"
-    "mysql2" "^2.2.5"
-    "nanoid" "^3.1.20"
-    "node-cache" "^5.1.2"
-    "pako" "^2.0.3"
-    "postgres" "^1.0.2"
-    "redis" "^3.1.2"
-    "simple-git" "^2.35.2"
-    "uuid" "^8.3.2"
-
 "ieee754@^1.1.13":
   "integrity" "sha512-dcyqhDvX1C46lXZcVqCpK+FtMRQVdIMN6/Df5js2zouUsqG7I6sFxitIC+7KYK29KdXOLHdu9zL4sFnoVQnqaA=="
   "resolved" "https://registry.npmjs.org/ieee754/-/ieee754-1.2.1.tgz"
@@ -180,6 +153,33 @@
   "version" "2.0.0"
   dependencies:
     "bytebuffer" "~3"
+
+"shared@file:../shared":
+  "resolved" "file:../shared"
+  "version" "1.0.0"
+  dependencies:
+    "@octokit/rest" "^18.2.1"
+    "amqplib" "^0.8.0"
+    "aws-sdk" "^2.839.0"
+    "axios" "^0.21.1"
+    "biguint-format" "^1.0.2"
+    "date-fns" "^2.16.1"
+    "flake-idgen" "^1.4.0"
+    "flakeid" "^1.0.0"
+    "jsonwebtoken" "^8.5.1"
+    "moment" "^2.29.1"
+    "moment-timezone" "^0.5.32"
+    "multer" "^1.4.2"
+    "multer-s3" "^2.9.0"
+    "multer-s3-transform" "^2.10.3"
+    "mysql2" "^2.2.5"
+    "nanoid" "^3.1.20"
+    "node-cache" "^5.1.2"
+    "pako" "^2.0.3"
+    "postgres" "^1.0.2"
+    "redis" "^4.0.0"
+    "simple-git" "^2.35.2"
+    "uuid" "^8.3.2"
 
 "type@^1.0.1":
   "integrity" "sha512-+5nt5AAniqsCnu2cEQQdpzCAh33kVx8n0VoFidKpB1dVVLAN/F+bgVOqOJqOnEnrhp222clB5p3vUlD+1QAnfg=="
