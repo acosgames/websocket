@@ -95,6 +95,8 @@ class RoomUpdate {
                         payload: hiddenPlayers[id]
                     }
                     let encodedPrivate = encode(privateMsg);
+                    console.log("Publishing Private [" + room_slug + "] with " + encodedPrivate.byteLength + ' bytes', JSON.stringify(privateMsg, null, 2));
+
                     ws.send(encodedPrivate, true, false);
                 }
 
