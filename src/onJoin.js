@@ -65,6 +65,7 @@ class JoinAction {
             }
         }
         else {
+            console.error("ws failed: ", ws);
             return null;
         }
 
