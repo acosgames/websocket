@@ -53,12 +53,13 @@ class JoinAction {
         if (ws && ws.user && ws.user.shortid) {
             let rooms = await storage.getPlayerRooms(ws.user.shortid);
             if (rooms.length > 0) {
+                console.log("User " + ws.user.shortid + " has " + rooms.length + " rooms.");
                 for (var i = 0; i < rooms.length; i++) {
                     let roomState = await storage.getRoomState(action.room_slug);
                     rooms[i].payload = roomState;
                 }
                 let response = { type: 'inrooms', payload: rooms }
-                console.log("onJoinGame 1");
+                // console.log("onJoinGame 1");
                 ws.send(encode(response), true, false);
                 return null;
             }
@@ -87,9 +88,10 @@ class JoinAction {
 
             this.pendingJoin(ws, game_slug + mode);
 
+            console.log("User " + ws.user.shortid + " joining queue for " + game_slug + '-' + mode);
             //tell user they have joined the queue
             let response = { type: 'queue', game_slug, mode }
-            console.log("onJoinGame 2");
+            // console.log("onJoinGame 2");
             ws.send(encode(response), true, false);
         }
         catch (e) {
