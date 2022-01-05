@@ -31,6 +31,7 @@ class Action {
     async onClientAction(ws, message, isBinary) {
         // profiler.StartTime('ActionUpdateLoop');
         // profiler.StartTime('OnClientAction');
+        console.log("Receiving message from Client: [" + ws.user.shortid + "]");
         let unsafeAction = null;
         try {
             unsafeAction = decode(message)
@@ -39,7 +40,7 @@ class Action {
             console.error(e);
             return;
         }
-        //console.log("Received from Client: [" + ws.user.shortid + "]", unsafeAction);
+        console.log("Receiving decoded from Client: [" + ws.user.shortid + "]", unsafeAction);
 
         if (!unsafeAction || !unsafeAction.type || typeof unsafeAction.type !== 'string')
             return;
