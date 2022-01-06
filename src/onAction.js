@@ -14,18 +14,21 @@ const profiler = require('shared/util/profiler');
 class Action {
 
     constructor() {
-        this.actions = {};
-        this.actions['joingame'] = JoinAction.onJoinGame.bind(JoinAction);
-        this.actions['joinroom'] = JoinAction.onJoinRoom.bind(JoinAction);
-        this.actions['leavequeue'] = JoinAction.onLeaveQueue.bind(JoinAction);
+        this.system = {};
+        this.system['joingame'] = JoinAction.onJoinGame.bind(JoinAction);
+        this.system['joinroom'] = JoinAction.onJoinRoom.bind(JoinAction);
+        this.system['leavequeue'] = JoinAction.onLeaveQueue.bind(JoinAction);
+        this.system['ping'] = onPing;
+
         // this.actions['spectate'] = JoinAction.onJoinSpectate.bind(JoinAction);
+        this.actions = {};
         this.actions['leave'] = onLeave;
         this.actions['skip'] = onSkip; //handled by timer in gameserver, not used here
         this.actions['pregame'] = onSkip;
         this.actions['type'] = onSkip;
         this.actions['gamestart'] = onSkip;
         this.actions['gameover'] = onSkip;
-        this.actions['ping'] = onPing;
+
     }
 
     async onClientAction(ws, message, isBinary) {
@@ -56,14 +59,29 @@ class Action {
 
         action.user = { id: ws.user.shortid };
 
+
         // if (action.type == 'ping') {
         //     await onPing(ws, action);
         //     return;
         // }
 
-        let systemAction = this.actions[action.type];
-        if (systemAction)
+        let systemAction = this.system[action.type];
+
+        if (systemAction) {
             action = await systemAction(ws, action);
+            return;
+        }
+
+        let roomState = await storage.getRoomState(action.room_slug);
+        if (!roomState)
+            return;
+
+        if (roomState?.events?.gameover)
+            return;
+
+        let requestAction = this.actions[action.type];
+        if (requestAction)
+            action = await requestAction(ws, action);
         else
             action = await this.gameAction(ws, action);
 

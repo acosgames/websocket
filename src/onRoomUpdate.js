@@ -108,7 +108,7 @@ class RoomUpdate {
 
                 setTimeout(() => {
                     this.killGameRoom(copy);
-                }, 1000)
+                }, 1)
                 //return true;
             }
 
