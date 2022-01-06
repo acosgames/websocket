@@ -122,6 +122,8 @@ class RoomUpdate {
             app.publish(room_slug, encoded, true, false)
             // }, 200)
 
+            profiler.EndTime('ActionUpdateLoop');
+
             return true;
         }
         catch (e) {

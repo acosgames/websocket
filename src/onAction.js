@@ -29,7 +29,7 @@ class Action {
     }
 
     async onClientAction(ws, message, isBinary) {
-        // profiler.StartTime('ActionUpdateLoop');
+        profiler.StartTime('ActionUpdateLoop');
         // profiler.StartTime('OnClientAction');
         console.log("Receiving message from Client: [" + ws.user.shortid + "]");
         let unsafeAction = null;
