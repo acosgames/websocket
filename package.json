@@ -16,7 +16,6 @@
     "bson": "^4.2.3",
     "cookie": "^0.4.1",
     "shared": "file:../shared",
-    "pako": "^2.0.3",
     "priorityqueuejs": "^2.0.0",
     "pson": "^2.0.0",
     "uWebSockets.js": "uNetworking/uWebSockets.js#v20.4.0",
