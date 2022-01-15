@@ -48,7 +48,7 @@ class WSNode {
         }
 
         this.options = options || {
-            idleTimeout: 300,
+            idleTimeout: 100,
             maxBackpressure: 1024,
             maxPayloadLength: 1380,
             compression: UWSjs.DEDICATED_COMPRESSOR_3KB,
