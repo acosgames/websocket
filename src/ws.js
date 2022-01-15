@@ -92,6 +92,8 @@ class WSNode {
     }
 
     onClientClose(ws, code, message) {
+
+        JoinAction.onLeaveQueue(ws);
         storage.removeUser(ws);
         console.log("Client Closed: ", ws.user.shortid, ws.user.displayname);
     }

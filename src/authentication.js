@@ -1,5 +1,5 @@
 const { v4: uuidv4 } = require('uuid');
-// const cookie = require('cookie')
+const cookie = require('cookie')
 const PersonService = require('shared/services/person');
 const persons = new PersonService();
 const credutil = require('shared/util/credentials');
@@ -26,11 +26,12 @@ class Authentication {
 
             let _logged = true;
 
-            // const _cookie = cookie.parse(req.getHeader('cookie'))
+            const _cookie = cookie.parse(req.getHeader('cookie'))
             let key = req.getHeader('sec-websocket-key');
             let jwtToken = req.getHeader('sec-websocket-protocol');
             let ext = req.getHeader('sec-websocket-extensions');
 
+            console.log("WS Cookie: ", req.getHeader('cookie'));
             try {
                 user = await persons.decodeUserToken(jwtToken);
                 if (!user) {
@@ -54,7 +55,7 @@ class Authentication {
                 context
             )
 
-            console.log("finished upgrade");
+            console.log("finished upgrade", _cookie);
         }
         catch (e) {
             console.error(e);

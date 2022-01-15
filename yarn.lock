@@ -137,11 +137,6 @@
   "resolved" "https://registry.npmjs.org/node-gyp-build/-/node-gyp-build-4.2.3.tgz"
   "version" "4.2.3"
 
-"pako@^2.0.3":
-  "integrity" "sha512-WjR1hOeg+kki3ZIOjaf4b5WVcay1jaliKSYiEaB1XzwhMQZJxRdQRv0V31EKBYlxb4T7SK3hjfc/jxyU64BoSw=="
-  "resolved" "https://registry.npmjs.org/pako/-/pako-2.0.3.tgz"
-  "version" "2.0.3"
-
 "priorityqueuejs@^2.0.0":
   "integrity" "sha512-19BMarhgpq3x4ccvVi8k2QpJZcymo/iFUcrhPd4V96kYGovOdTsWwy7fxChYi4QY+m2EnGBWSX9Buakz+tWNQQ=="
   "resolved" "https://registry.npmjs.org/priorityqueuejs/-/priorityqueuejs-2.0.0.tgz"
@@ -175,7 +170,6 @@
     "mysql2" "^2.2.5"
     "nanoid" "^3.1.20"
     "node-cache" "^5.1.2"
-    "pako" "^2.0.3"
     "postgres" "^1.0.2"
     "redis" "^4.0.0"
     "simple-git" "^2.35.2"
