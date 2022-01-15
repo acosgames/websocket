@@ -48,8 +48,9 @@ class WSNode {
         }
 
         this.options = options || {
-            idleTimeout: 100,
-            maxBackpressure: 1024,
+            idleTimeout: 120,
+            // maxBackpressure: 1024,
+            sendPingsAutomatically: true,
             maxPayloadLength: 1380,
             compression: UWSjs.DEDICATED_COMPRESSOR_3KB,
             upgrade: auth.upgrade.bind(auth),
