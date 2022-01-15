@@ -48,7 +48,7 @@ class WSNode {
         }
 
         this.options = options || {
-            idleTimeout: 120,
+            idleTimeout: 50,
             // maxBackpressure: 1024,
             sendPingsAutomatically: true,
             maxPayloadLength: 1380,
