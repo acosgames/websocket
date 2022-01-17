@@ -73,8 +73,9 @@ class RoomUpdate {
                 await JoinAction.onJoinResponse(room_slug, gamestate);
             }
             else if (msg.type == 'noshow') {
-                if (msg?.payload?.error)
-                    copy.error = msg.payload.error;
+                // copy.events.noshow = true;
+                // if (msg?.payload?.error)
+                //     copy.error = msg.payload.error;
             }
 
             let app = storage.getWSApp();

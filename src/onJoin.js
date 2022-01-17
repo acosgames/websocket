@@ -23,6 +23,12 @@ class JoinAction {
             return null;
         }
 
+        if (roomState?.events?.gameover) {
+            storage.cleanupRoom(room_slug);
+            this.sendResponse(ws, 'notexist', room_slug);
+            return null;
+        }
+
         let roomMeta = await storage.getRoomMeta(room_slug);
         if (!roomMeta) {
             this.sendResponse(ws, 'notexist', room_slug);
