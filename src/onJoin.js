@@ -277,11 +277,19 @@ class JoinAction {
     }
 
     async subscribeToRoom(ws, room_slug, roomState) {
-        ws.subscribe(room_slug);
+
         roomState = roomState || await storage.getRoomState(room_slug);
-        setTimeout(() => {
-            this.onJoined(ws, room_slug, roomState);
-        }, 0);
+
+        if (roomState) {
+            console.log("Subscribing user: ", ws.user.shortid, room_slug);
+            ws.subscribe(room_slug);
+
+            setTimeout(() => {
+                this.onJoined(ws, room_slug, roomState);
+            }, 0);
+        } else {
+            console.error("Room state does not exist.", ws.user.shortid, room_slug)
+        }
     }
 
     async pendingJoin(ws, room_slug) {

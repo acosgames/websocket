@@ -92,10 +92,9 @@ class WSNode {
     }
 
     onClientClose(ws, code, message) {
-
+        console.log("Client Closed: ", ws.user.shortid, ws.user.displayname);
         JoinAction.onLeaveQueue(ws);
         storage.removeUser(ws);
-        console.log("Client Closed: ", ws.user.shortid, ws.user.displayname);
     }
 
     async onClientOpen(ws) {
@@ -105,18 +104,17 @@ class WSNode {
             return
         }
 
+        console.log("User connected: ", ws.user.shortid, ws.user.displayname);
         storage.addUser(ws);
 
         let rooms = await storage.getPlayerRooms(ws.user.shortid);
         for (var i = 0; i < rooms.length; i++) {
             JoinAction.subscribeToRoom(ws, rooms[i].room_slug);
-            // ws.subscribe(rooms[i].room_slug);
-            console.error("Subscribing user: ", ws.user.shortid, rooms[i].room_slug);
         }
         // this.users[ws.user.shortid] = ws;
         // ws.subscribe(ws.user.shortid);
 
-        console.log("User connected: ", ws.user.shortid, ws.user.displayname);
+
     }
 
 
