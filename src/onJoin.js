@@ -19,6 +19,7 @@ class JoinAction {
 
         let roomState = await storage.getRoomState(room_slug);
         if (!roomState) {
+            storage.cleanupRoom(room_slug);
             this.sendResponse(ws, 'notexist', room_slug);
             return null;
         }
@@ -31,6 +32,7 @@ class JoinAction {
 
         let roomMeta = await storage.getRoomMeta(room_slug);
         if (!roomMeta) {
+            storage.cleanupRoom(room_slug);
             this.sendResponse(ws, 'notexist', room_slug);
             return null;
         }
@@ -50,7 +52,10 @@ class JoinAction {
             return await this.onPreJoinRoom(ws, action, roomMeta);
         }
 
-        this.subscribeToRoom(ws, room_slug);
+        let success = this.subscribeToRoom(ws, room_slug);
+        if (!success) {
+
+        }
         return null;
     }
 
@@ -245,7 +250,7 @@ class JoinAction {
             room_slug
         };
         let encoded = encode(msg);
-        console.log("sendResponse 1");
+        console.log("sendResponse ", type, room_slug);
         ws.send(encoded, true, false);
     }
 
@@ -287,8 +292,10 @@ class JoinAction {
             setTimeout(() => {
                 this.onJoined(ws, room_slug, roomState);
             }, 0);
+            return true;
         } else {
             console.error("Room state does not exist.", ws.user.shortid, room_slug)
+            return false;
         }
     }
 
