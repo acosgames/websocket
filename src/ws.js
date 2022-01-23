@@ -107,19 +107,33 @@ class WSNode {
         console.log("User connected: ", ws.user.shortid, ws.user.displayname);
         storage.addUser(ws);
 
+        // let rooms = await storage.getPlayerRooms(ws.user.shortid);
+
         let rooms = await storage.getPlayerRooms(ws.user.shortid);
-        for (var i = 0; i < rooms.length; i++) {
-            let payload = {
-                room_slug: rooms[i].room_slug,
-                game_slug: rooms[i].game_slug
+        if (rooms.length > 0) {
+            console.log("[WS onClientOpen] User " + ws.user.shortid + " has " + rooms.length + " rooms.");
+            for (var i = 0; i < rooms.length; i++) {
+                let roomState = await storage.getRoomState(rooms[i].room_slug);
+                rooms[i].payload = roomState;
             }
-            let action = {
-                type: 'joinroom',
-                user: { id: ws.user.shortid },
-                payload
-            }
-            JoinAction.onJoinRoom(ws, action);
+            let response = { type: 'inrooms', payload: rooms }
+            // console.log("onJoinGame 1");
+            ws.send(encode(response), true, false);
+            return null;
         }
+
+        // for (var i = 0; i < rooms.length; i++) {
+        //     let payload = {
+        //         room_slug: rooms[i].room_slug,
+        //         game_slug: rooms[i].game_slug
+        //     }
+        //     let action = {
+        //         type: 'joinroom',
+        //         user: { id: ws.user.shortid },
+        //         payload
+        //     }
+        //     JoinAction.onJoinRoom(ws, action);
+        // }
         // this.users[ws.user.shortid] = ws;
         // ws.subscribe(ws.user.shortid);
 
