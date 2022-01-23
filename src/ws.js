@@ -110,9 +110,15 @@ class WSNode {
         let rooms = await storage.getPlayerRooms(ws.user.shortid);
         for (var i = 0; i < rooms.length; i++) {
             let payload = {
-                room_slug: rooms[i].room_slug
+                room_slug: rooms[i].room_slug,
+                game_slug: rooms[i].game_slug
             }
-            JoinAction.onJoinRoom(ws, payload);
+            let action = {
+                type: 'joinroom',
+                user: { id: ws.user.shortid },
+                payload
+            }
+            JoinAction.onJoinRoom(ws, action);
         }
         // this.users[ws.user.shortid] = ws;
         // ws.subscribe(ws.user.shortid);
