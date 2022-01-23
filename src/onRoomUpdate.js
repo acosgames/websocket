@@ -42,8 +42,11 @@ class RoomUpdate {
         try {
 
             let previousGamestate = await storage.getRoomState(room_slug) || {};
+            if (!previousGamestate)
+                return true;
             // console.log("Previous: ", previousGamestate.players);
             let gamestate = delta.merge(previousGamestate, msg.payload);
+
             let playerList = Object.keys(gamestate.players);
             // console.log("Delta: ", msg);
             // console.log("Updated Game: ", gamestate);

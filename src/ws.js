@@ -18,6 +18,7 @@ const storage = require('./storage');
 
 const redis = require('shared/services/redis');
 const rabbitmq = require('shared/services/rabbitmq');
+const { encode } = require('shared/util/encoder');
 
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
