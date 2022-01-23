@@ -110,72 +110,72 @@ class WSNode {
         let rooms = await storage.getPlayerRooms(ws.user.shortid);
         for (var i = 0; i < rooms.length; i++) {
             let payload = {
-                room_slug: rooms[i].room_slug,
+                : rooms[i].room_slug,
                 game_slug: rooms[i].game_slug
-            }
-            let action = {
-                type: 'joinroom',
-                user: { id: ws.user.shortid },
-                payload
-            }
-            JoinAction.onJoinRoom(ws, action);
+        } room_slug
+        let action = {
+            type: 'joinroom',
+            user: { id: ws.user.shortid },
+            payload
         }
-        // this.users[ws.user.shortid] = ws;
-        // ws.subscribe(ws.user.shortid);
+        JoinAction.onJoinRoom(ws, action);
+    }
+    // this.users[ws.user.shortid] = ws;
+    // ws.subscribe(ws.user.shortid);
 
 
+}
+
+
+
+verifyAPIKey(res, req) {
+    let apikey = req.getHeader('x-api-key');
+    if (apikey != '6C312A606D9A4CEBADB174F5FAE31A28') {
+        res.end('Not valid');
+        return false;
     }
 
+    return true;
+}
 
+addPlayer(res, req) {
+    if (!this.verifyAPIKey(res, req))
+        return;
+}
+redirectPlayer(res, req) {
+    if (!this.verifyAPIKey(res, req))
+        return;
+}
+addGame(res, req) {
+    if (!this.verifyAPIKey(res, req))
+        return;
+}
 
-    verifyAPIKey(res, req) {
-        let apikey = req.getHeader('x-api-key');
-        if (apikey != '6C312A606D9A4CEBADB174F5FAE31A28') {
-            res.end('Not valid');
-            return false;
-        }
+anyRoute(res, req) {
+    console.log(req);
+    let hookid = req.getHeader('x-github-hook-id');
+    console.log("hookid", hookid);
+    req.forEach((k, v) => {
+        res.write('<li>');
+        res.write(k);
+        res.write(' = ');
+        res.write(v);
+        res.write('</li>');
+    });
+    res.end('</ul>');
+}
 
-        return true;
+onListen(listenSocket) {
+    if (listenSocket) {
+        console.log("Mem: ", process.memoryUsage())
+        const used = process.memoryUsage().heapUsed / 1024 / 1024;
+        console.log(`The script uses approximately ${Math.round(used * 100) / 100} MB`);
+        console.log("Websocket server listining on " + this.port);
     }
-
-    addPlayer(res, req) {
-        if (!this.verifyAPIKey(res, req))
-            return;
+    else {
+        console.error("something wrong happened");
     }
-    redirectPlayer(res, req) {
-        if (!this.verifyAPIKey(res, req))
-            return;
-    }
-    addGame(res, req) {
-        if (!this.verifyAPIKey(res, req))
-            return;
-    }
-
-    anyRoute(res, req) {
-        console.log(req);
-        let hookid = req.getHeader('x-github-hook-id');
-        console.log("hookid", hookid);
-        req.forEach((k, v) => {
-            res.write('<li>');
-            res.write(k);
-            res.write(' = ');
-            res.write(v);
-            res.write('</li>');
-        });
-        res.end('</ul>');
-    }
-
-    onListen(listenSocket) {
-        if (listenSocket) {
-            console.log("Mem: ", process.memoryUsage())
-            const used = process.memoryUsage().heapUsed / 1024 / 1024;
-            console.log(`The script uses approximately ${Math.round(used * 100) / 100} MB`);
-            console.log("Websocket server listining on " + this.port);
-        }
-        else {
-            console.error("something wrong happened");
-        }
-    }
+}
 }
 
 module.exports = new WSNode();
