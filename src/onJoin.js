@@ -59,7 +59,9 @@ class JoinAction {
         return null;
     }
 
-    async onJoinGame(ws, action) {
+    async onJoinQueues(ws, action) {
+
+        var playerCount = storage.getPlayerCount();
 
         if (ws && ws.user && ws.user.shortid) {
             let rooms = await storage.getPlayerRooms(ws.user.shortid);
@@ -69,7 +71,61 @@ class JoinAction {
                     let roomState = await storage.getRoomState(action.room_slug);
                     rooms[i].payload = roomState;
                 }
-                let response = { type: 'inrooms', payload: rooms }
+
+                let response = { type: 'inrooms', payload: rooms, playerCount }
+                // console.log("onJoinGame 1");
+                ws.send(encode(response), true, false);
+                return null;
+            }
+        }
+        else {
+            console.error("ws failed: ", ws);
+            return null;
+        }
+
+
+        try {
+            let queues = action?.payload?.queues;
+            let owner = action?.payload?.owner;
+            let msg = {
+                user: {
+                    id: ws.user.shortid,
+                    name: ws.user.displayname
+                },
+                queues, owner
+            }
+
+            await rabbitmq.publishQueue('joinQueue', msg);
+
+            // this.pendingJoin(ws, game_slug + mode);
+
+            console.log("User " + ws.user.shortid + " joining " + queues.length + " queues.");
+            //tell user they have joined the queue
+            let response = { type: 'queue', queues, playerCount }
+            // console.log("onJoinGame 2");
+            ws.send(encode(response), true, false);
+        }
+        catch (e) {
+            console.error(e);
+        }
+
+        return null;
+    }
+
+    async onJoinGame(ws, action) {
+
+        var playerCount = storage.getPlayerCount();
+
+        if (ws && ws.user && ws.user.shortid) {
+            let rooms = await storage.getPlayerRooms(ws.user.shortid);
+            if (rooms.length > 0) {
+                console.log("User " + ws.user.shortid + " has " + rooms.length + " rooms.");
+                for (var i = 0; i < rooms.length; i++) {
+                    let roomState = await storage.getRoomState(action.room_slug);
+                    rooms[i].payload = roomState;
+                }
+
+                let response = { type: 'inrooms', payload: rooms, playerCount }
                 // console.log("onJoinGame 1");
                 ws.send(encode(response), true, false);
                 return null;
@@ -86,14 +142,14 @@ class JoinAction {
         }
 
         let game_slug = action.payload.game_slug;
+        let queues = [{ game_slug, mode }];
         try {
             let msg = {
                 user: {
                     id: ws.user.shortid,
                     name: ws.user.displayname
                 },
-                game_slug,
-                mode
+                queues
             }
 
             await rabbitmq.publishQueue('joinQueue', msg);
@@ -102,7 +158,7 @@ class JoinAction {
 
             console.log("User " + ws.user.shortid + " joining queue for " + game_slug + '-' + mode);
             //tell user they have joined the queue
-            let response = { type: 'queue', game_slug, mode }
+            let response = { type: 'queue', queues, playerCount }
             // console.log("onJoinGame 2");
             ws.send(encode(response), true, false);
         }

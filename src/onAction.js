@@ -15,6 +15,7 @@ class Action {
 
     constructor() {
         this.system = {};
+        this.system['joinqueues'] = JoinAction.onJoinQueues.bind(JoinAction);
         this.system['joingame'] = JoinAction.onJoinGame.bind(JoinAction);
         this.system['joinroom'] = JoinAction.onJoinRoom.bind(JoinAction);
         this.system['leavequeue'] = JoinAction.onLeaveQueue.bind(JoinAction);

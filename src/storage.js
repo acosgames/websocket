@@ -7,6 +7,7 @@ const r = require('shared/services/room');
 class Storage {
     constructor() {
         this.users = {};
+        this.userCount = 0;
         this.app = null;
     }
 
@@ -18,6 +19,9 @@ class Storage {
     }
 
 
+    getPlayerCount() {
+        return this.userCount || 0;
+    }
 
     async getRoomMeta(room_slug) {
         let room = await r.findRoom(room_slug);
@@ -54,6 +58,7 @@ class Storage {
     addUser(ws) {
         this.users[ws.user.shortid] = ws;
         cache.set(ws.user.shortid, 1);
+        this.userCount++;
     }
 
     removeUser(ws) {
@@ -61,6 +66,7 @@ class Storage {
         if (this.users[id])
             delete this.users[id];
         cache.del(ws.user.shortid);
+        this.userCount--;
     }
 
     getUser(id) {
