@@ -8,6 +8,7 @@ axios.interceptors.response.use(
         return response
     },
     error => {
+        console.error(error);
         if (!error.response) {
             console.log("Waiting on api to be online...");
         }
