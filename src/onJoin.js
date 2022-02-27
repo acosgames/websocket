@@ -69,6 +69,7 @@ class JoinAction {
                 console.log("User " + ws.user.shortid + " has " + rooms.length + " rooms.");
                 for (var i = 0; i < rooms.length; i++) {
                     let roomState = await storage.getRoomState(action.room_slug);
+                    this.subscribeToRoom(ws, rooms[i].room_slug, roomState);
                     rooms[i].payload = roomState;
                 }
 
@@ -122,6 +123,7 @@ class JoinAction {
                 console.log("User " + ws.user.shortid + " has " + rooms.length + " rooms.");
                 for (var i = 0; i < rooms.length; i++) {
                     let roomState = await storage.getRoomState(action.room_slug);
+                    this.subscribeToRoom(ws, rooms[i].room_slug, roomState);
                     rooms[i].payload = roomState;
                 }
 
