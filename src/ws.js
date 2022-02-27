@@ -115,10 +115,12 @@ class WSNode {
             console.log("[WS onClientOpen] User " + ws.user.shortid + " has " + rooms.length + " rooms.");
             for (var i = 0; i < rooms.length; i++) {
                 let roomState = await storage.getRoomState(rooms[i].room_slug);
+                JoinAction.subscribeToRoom(ws, rooms[i].room_slug, roomState);
                 rooms[i].payload = roomState;
             }
             let response = { type: 'inrooms', payload: rooms }
             // console.log("onJoinGame 1");
+
             ws.send(encode(response), true, false);
             return null;
         }
