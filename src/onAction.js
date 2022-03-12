@@ -112,10 +112,15 @@ class Action {
     }
 
     validateUser(ws, roomState, action) {
+
+
+
         //prevent users from sending actions if not their turn
         if (!roomState)
             return false;
-        if (!roomState.next)
+
+        let next = roomState?.next;
+        if (!next)
             return false;
 
 
@@ -124,8 +129,13 @@ class Action {
             return true;
         }
 
-        if (roomState.next.id == '*' || roomState.next.id == ws.user.shortid) {
-            if (roomState.timer.seq != action.seq) {
+        let userid = action.user.id;
+        let nextid = next?.id;
+        let teams = roomState?.teams;
+
+        let passed = this.validateNextUser(userid, nextid, teams);
+        if (passed) {
+            if (roomState?.timer?.seq != action.seq) {
                 JoinAction.subscribeToRoom(ws, action.room_slug, roomState);
                 console.error("User failed validation: ", roomState.timer, roomState.next);
                 return false;
@@ -133,7 +143,47 @@ class Action {
             return true;
         }
 
+        return false;
+    }
 
+    validateNextUser(userid, nextid, teams) {
+
+        if (typeof nextid === 'string') {
+            //anyone can send actions
+            if (nextid == '*')
+                return true;
+
+            //only specific user can send actions
+            if (nextid == userid)
+                return true;
+
+            //validate team has players
+            if (!teams || !teams[nextid] || !teams[nextid].players)
+                return false;
+
+            //allow players on specified team to send actions
+            if (Array.isArray(teams[nextid].players) && teams[nextid].players.includes(userid)) {
+                return true;
+            }
+        }
+        else if (Array.isArray(nextid)) {
+
+            //multiple users can send actions if in the array
+            if (nextid.includes(userid))
+                return true;
+
+            //validate teams exist
+            if (!teams)
+                return false;
+
+            //multiple teams can send actions if in the array
+            for (var i = 0; i < nextid.length; i++) {
+                let teamid = nextid[i];
+                if (Array.isArray(teams[teamid].players) && teams[teamid].players.includes(userid)) {
+                    return true;
+                }
+            }
+        }
 
         return false;
     }
