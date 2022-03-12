@@ -137,12 +137,13 @@ class Action {
         if (passed) {
             if (roomState?.timer?.seq != action.seq) {
                 JoinAction.subscribeToRoom(ws, action.room_slug, roomState);
-                console.error("User failed validation: ", roomState.timer, roomState.next);
+                console.error("User failed seq validation: ", roomState.timer, roomState.next);
                 return false;
             }
             return true;
         }
 
+        console.log("User failed validation: ", action);
         return false;
     }
 
