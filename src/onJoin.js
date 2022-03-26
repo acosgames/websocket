@@ -68,7 +68,7 @@ class JoinAction {
             if (rooms.length > 0) {
                 console.log("User " + ws.user.shortid + " has " + rooms.length + " rooms.");
                 for (var i = 0; i < rooms.length; i++) {
-                    let roomState = await storage.getRoomState(action.room_slug);
+                    let roomState = await storage.getRoomState(action.room_slug, ws.user.shortid);
                     this.subscribeToRoom(ws, rooms[i].room_slug, roomState);
                     rooms[i].payload = roomState;
                 }
@@ -122,7 +122,7 @@ class JoinAction {
             if (rooms.length > 0) {
                 console.log("User " + ws.user.shortid + " has " + rooms.length + " rooms.");
                 for (var i = 0; i < rooms.length; i++) {
-                    let roomState = await storage.getRoomState(action.room_slug);
+                    let roomState = await storage.getRoomState(action.room_slug, ws.user.shortid);
                     this.subscribeToRoom(ws, rooms[i].room_slug, roomState);
                     rooms[i].payload = roomState;
                 }
@@ -267,7 +267,7 @@ class JoinAction {
 
         // console.log("[onJoined] Subscribing and Sending to client.", id, room_slug);
 
-        roomState = roomState || await storage.getRoomState(room_slug);
+        roomState = roomState || await storage.getRoomState(room_slug, ws.user.shortid);
 
         if (roomState) {
             ws.subscribe(room_slug);
@@ -341,7 +341,7 @@ class JoinAction {
 
     async subscribeToRoom(ws, room_slug, roomState) {
 
-        roomState = roomState || await storage.getRoomState(room_slug);
+        roomState = roomState || await storage.getRoomState(room_slug, ws.user.shortid);
 
         if (roomState) {
             console.log("Subscribing user: ", ws.user.shortid, room_slug);

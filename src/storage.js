@@ -2,7 +2,7 @@ const cache = require("shared/services/cache");
 const r = require('shared/services/room');
 
 
-
+const delta = require('shared/util/delta');
 
 class Storage {
     constructor() {
@@ -28,9 +28,30 @@ class Storage {
         return room || null;
     }
 
-    async getRoomState(room_slug) {
-        let state = await cache.get(room_slug);
-        return state || null;
+    async getRoomState(room_slug, id) {
+        try {
+            let state = await cache.get(room_slug);
+            let dlta = JSON.parse(JSON.stringify(state));
+            if (dlta && id) {
+                let hiddenState = null;
+                if (dlta.state)
+                    hiddenState = delta.hidden(dlta.state);
+                let hiddenPlayers = delta.hidden(dlta.players) || {};
+
+                if (hiddenPlayers && dlta?.players) {
+                    if (id in hiddenPlayers) {
+                        dlta.players[id] = Object.assign({}, dlta.players[id] || {}, hiddenPlayers[id] || {});
+                    }
+                }
+
+            }
+
+            return dlta || null;
+        }
+        catch (e) {
+            console.error(e);
+        }
+        return null;
     }
 
     async setRoomState(room_slug, state) {
