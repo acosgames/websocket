@@ -64,26 +64,17 @@ class JoinAction {
         var playerCount = storage.getPlayerCount();
 
         if (ws && ws.user && ws.user.shortid) {
-            let rooms = await storage.getPlayerRooms(ws.user.shortid);
-            if (rooms.length > 0) {
-                console.log("User " + ws.user.shortid + " has " + rooms.length + " rooms.");
-                for (var i = 0; i < rooms.length; i++) {
-                    let roomState = await storage.getRoomState(action.room_slug, ws.user.shortid);
-                    this.subscribeToRoom(ws, rooms[i].room_slug, roomState);
-                    rooms[i].payload = roomState;
-                }
-
-                let response = { type: 'inrooms', payload: rooms, playerCount }
-                // console.log("onJoinGame 1");
-                ws.send(encode(response), true, false);
+            if (await this.checkInRoom(ws, action))
                 return null;
-            }
         }
         else {
             console.error("ws failed: ", ws);
             return null;
         }
 
+
+        if (!ws.user || !ws.user.shortid || !ws.user.displayname)
+            return null;
 
         try {
             let queues = action?.payload?.queues;
@@ -113,30 +104,42 @@ class JoinAction {
         return null;
     }
 
+    async checkInRoom(ws, action) {
+        let rooms = await storage.getPlayerRooms(ws.user.shortid);
+        if (!rooms || rooms.length == 0)
+            return false;
+
+        console.log("User " + ws.user.shortid + " has " + rooms.length + " rooms.");
+        for (var i = 0; i < rooms.length; i++) {
+            let roomState = await storage.getRoomState(action.room_slug, ws.user.shortid);
+            this.subscribeToRoom(ws, rooms[i].room_slug, roomState);
+            rooms[i].payload = roomState;
+        }
+
+        var playerCount = storage.getPlayerCount();
+        let response = { type: 'inrooms', payload: rooms, playerCount }
+        // console.log("onJoinGame 1");
+        ws.send(encode(response), true, false);
+
+
+        return true;
+    }
+
     async onJoinGame(ws, action) {
 
         var playerCount = storage.getPlayerCount();
 
         if (ws && ws.user && ws.user.shortid) {
-            let rooms = await storage.getPlayerRooms(ws.user.shortid);
-            if (rooms.length > 0) {
-                console.log("User " + ws.user.shortid + " has " + rooms.length + " rooms.");
-                for (var i = 0; i < rooms.length; i++) {
-                    let roomState = await storage.getRoomState(action.room_slug, ws.user.shortid);
-                    this.subscribeToRoom(ws, rooms[i].room_slug, roomState);
-                    rooms[i].payload = roomState;
-                }
-
-                let response = { type: 'inrooms', payload: rooms, playerCount }
-                // console.log("onJoinGame 1");
-                ws.send(encode(response), true, false);
+            if (await this.checkInRoom(ws, action))
                 return null;
-            }
         }
         else {
             console.error("ws failed: ", ws);
             return null;
         }
+
+        if (!ws.user || !ws.user.shortid || !ws.user.displayname)
+            return null;
 
         let mode = action.payload.mode || 'rank';
         if (mode != 'experimental' && mode != 'rank') {
@@ -263,7 +266,7 @@ class JoinAction {
         return null;
     }
     async onJoined(ws, room_slug, roomState) {
-        let id = ws.user.id;
+        let id = ws.user.shortid;
 
         // console.log("[onJoined] Subscribing and Sending to client.", id, room_slug);
 

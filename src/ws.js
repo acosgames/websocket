@@ -108,39 +108,9 @@ class WSNode {
         console.log("User connected: ", ws.user.shortid, ws.user.displayname);
         storage.addUser(ws);
 
-        // let rooms = await storage.getPlayerRooms(ws.user.shortid);
 
-        let rooms = await storage.getPlayerRooms(ws.user.shortid);
-        if (rooms.length > 0) {
-            console.log("[WS onClientOpen] User " + ws.user.shortid + " has " + rooms.length + " rooms.");
-            for (var i = 0; i < rooms.length; i++) {
-                let roomState = await storage.getRoomState(rooms[i].room_slug, ws.user.shortid);
-                JoinAction.subscribeToRoom(ws, rooms[i].room_slug, roomState);
-                rooms[i].payload = roomState;
-            }
-            let response = { type: 'inrooms', payload: rooms }
-            // console.log("onJoinGame 1");
-
-            ws.send(encode(response), true, false);
+        if (await JoinAction.checkInRoom(ws, action))
             return null;
-        }
-
-        // for (var i = 0; i < rooms.length; i++) {
-        //     let payload = {
-        //         room_slug: rooms[i].room_slug,
-        //         game_slug: rooms[i].game_slug
-        //     }
-        //     let action = {
-        //         type: 'joinroom',
-        //         user: { id: ws.user.shortid },
-        //         payload
-        //     }
-        //     JoinAction.onJoinRoom(ws, action);
-        // }
-        // this.users[ws.user.shortid] = ws;
-        // ws.subscribe(ws.user.shortid);
-
-
     }
 
 
