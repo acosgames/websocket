@@ -104,14 +104,14 @@ class JoinAction {
         return null;
     }
 
-    async checkInRoom(ws, action) {
+    async checkInRoom(ws) {
         let rooms = await storage.getPlayerRooms(ws.user.shortid);
         if (!rooms || rooms.length == 0)
             return false;
 
         console.log("User " + ws.user.shortid + " has " + rooms.length + " rooms.");
         for (var i = 0; i < rooms.length; i++) {
-            let roomState = await storage.getRoomState(action.room_slug, ws.user.shortid);
+            let roomState = await storage.getRoomState(rooms[i].room_slug, ws.user.shortid);
             this.subscribeToRoom(ws, rooms[i].room_slug, roomState);
             rooms[i].payload = roomState;
         }

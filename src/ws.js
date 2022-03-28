@@ -109,7 +109,7 @@ class WSNode {
         storage.addUser(ws);
 
 
-        if (await JoinAction.checkInRoom(ws, action))
+        if (await JoinAction.checkInRoom(ws))
             return null;
     }
 
