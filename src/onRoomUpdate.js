@@ -46,8 +46,10 @@ class RoomUpdate {
                 return true;
             // console.log("Previous: ", previousGamestate.players);
             let gamestate = delta.merge(previousGamestate, msg.payload);
+            if (!gamestate)
+                return true;
 
-            let playerList = Object.keys(gamestate.players);
+            let playerList = Object.keys(gamestate.players || {});
             // console.log("Delta: ", msg);
             // console.log("Updated Game: ", gamestate);
 

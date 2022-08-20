@@ -59,7 +59,14 @@ class Storage {
     }
 
     async getGameInfo(game_slug) {
-
+        try {
+            let gameinfo = await r.getGameInfo(game_slug);
+            return gameinfo;
+        }
+        catch (e) {
+            console.error(e);
+        }
+        return null;
     }
 
     async getRoomCounts(room_slug) {

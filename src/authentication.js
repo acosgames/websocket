@@ -24,7 +24,7 @@ class Authentication {
         let user = null;
         try {
 
-            let _logged = true;
+            let loggedIn = 'LURKER';
 
             const _cookie = cookie.parse(req.getHeader('cookie'))
             let key = req.getHeader('sec-websocket-key');
@@ -32,25 +32,38 @@ class Authentication {
             let ext = req.getHeader('sec-websocket-extensions');
 
             console.log("WS Cookie: ", req.getHeader('cookie'));
-            try {
-                user = await persons.decodeUserToken(jwtToken);
-                if (!user) {
-                    res.writeStatus('401');
-                    res.end();
-                    return;
+
+            if (jwtToken == 'LURKER') {
+                user = { shortid: 'SPECTATOR', displayname: 'Spectator' }
+            }
+            else {
+                try {
+                    user = await persons.decodeUserToken(jwtToken);
+                    if (!user) {
+                        console.error("User attempted invalid JWT: ", user, jwtToken);
+                    }
+                    else if (user.email) {
+                        loggedIn = 'USER';
+                    }
+                    else if (user.displayname) {
+                        loggedIn = 'TEMP';
+                    }
+
+                }
+                catch (e) {
+                    console.error("[Upgrade Error] for user:", user, jwtToken);
+                    console.error(e);
+
+                    // res.writeStatus('401');
+                    // res.end();
+                    // return;
                 }
             }
-            catch (e) {
-                res.writeStatus('401');
-                res.end();
-                return;
-            }
 
-            _logged = user ? true : false;
 
             var pending = {};
             res.upgrade(
-                { _logged, user, pending },
+                { loggedIn, user, pending },
                 key, jwtToken, ext,
                 context
             )
@@ -69,7 +82,7 @@ class Authentication {
         // const _cookie = cookie.parse(req.getHeader('cookie'))
         // console.log(_cookie);
         // validate the cookie somehow
-        // and set _logged true or false
+        // and set loggedIn true or false
 
         try {
             let user = { apikey };

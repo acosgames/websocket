@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "npm run dev",
+    "start": "node index.js",
     "dev": "pm2 start index.js --name websocket --node-args=\"--inspect=10004 --trace-warnings\" --watch \". ../shared\" --ignore-watch \"sessions public package.json node_modules\"",
     "installws": "yarn add uWebSockets.js@uNetworking/uWebSockets.js#v20.4.0",
     "test": "echo \"Error: no test specified\" && exit 1"

@@ -9,11 +9,21 @@ const mq = require('shared/services/rabbitmq');
 const storage = require('./storage');
 const profiler = require('shared/util/profiler');
 
+const PublicAction = require('./PublicAction');
+
 // console.log = () => { };
 
 class Action {
 
     constructor() {
+
+        this.publicActions = {};
+        this.publicActions['getGameQueues'] = PublicAction.getGameQueues.bind(PublicAction);
+        this.publicActions['getGameDaily'] = PublicAction.getGameDaily.bind(PublicAction);
+        this.publicActions['getGameWeekly'] = PublicAction.getGameWeekly.bind(PublicAction);
+        this.publicActions['getGameMonthly'] = PublicAction.getGameMonthly.bind(PublicAction);
+        this.publicActions['getGameAllTime'] = PublicAction.getGameAllTime.bind(PublicAction);
+
         this.system = {};
         this.system['joinqueues'] = JoinAction.onJoinQueues.bind(JoinAction);
         this.system['joingame'] = JoinAction.onJoinGame.bind(JoinAction);
@@ -35,6 +45,8 @@ class Action {
     async onClientAction(ws, message, isBinary) {
         profiler.StartTime('ActionUpdateLoop');
         // profiler.StartTime('OnClientAction');
+
+
         console.log("Receiving message from Client: [" + ws.user.shortid + "]");
         let unsafeAction = null;
         try {
@@ -44,10 +56,16 @@ class Action {
             console.error(e);
             return;
         }
-        console.log("Receiving decoded from Client: [" + ws.user.shortid + "]", unsafeAction);
 
-        if (!unsafeAction || !unsafeAction.type || typeof unsafeAction.type !== 'string')
+
+        if (!unsafeAction || !unsafeAction.type || typeof unsafeAction.type !== 'string') {
+
+            console.error("Invalid action received from: [" + ws.user.shortid + "]", unsafeAction);
             return;
+        }
+
+
+        console.log("Receiving decoded from Client: [" + ws.user.shortid + "]", unsafeAction);
 
         let action = {};
         action.type = unsafeAction.type;
@@ -58,7 +76,9 @@ class Action {
             action.room_slug = unsafeAction.room_slug;
         }
 
+
         action.user = { id: ws.user.shortid };
+
 
 
         // if (action.type == 'ping') {

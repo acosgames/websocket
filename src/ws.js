@@ -99,18 +99,20 @@ class WSNode {
     }
 
     async onClientOpen(ws) {
-        if (!ws._logged) {
+        if (!ws.loggedIn) {
             console.log('unauthorized user: ', ws)
             ws.end()
             return
         }
 
-        console.log("User connected: ", ws.user.shortid, ws.user.displayname);
-        storage.addUser(ws);
+        if (ws.loggedIn != 'LURKER') {
+            console.log("User connected: ", ws.user.shortid, ws.user.displayname);
+            storage.addUser(ws);
 
+            if (await JoinAction.checkInRoom(ws))
+                return null;
+        }
 
-        if (await JoinAction.checkInRoom(ws))
-            return null;
     }
 
 

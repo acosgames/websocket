@@ -73,7 +73,7 @@ class JoinAction {
         }
 
 
-        if (!ws.user || !ws.user.shortid || !ws.user.displayname)
+        if (!ws.loggedIn == 'LURKER')
             return null;
 
         try {
@@ -85,6 +85,16 @@ class JoinAction {
                     name: ws.user.displayname
                 },
                 queues, owner
+            }
+
+            for (let queue of queues) {
+                let gameinfo = await storage.getGameInfo(queue.game_slug);
+                let min = gameinfo.minplayers;
+                let max = gameinfo.maxplayers;
+                if (max == 1) {
+                    await this.createGameAndJoinSinglePlayer(ws, queue)
+                    return null;
+                }
             }
 
             await rabbitmq.publishQueue('joinQueue', msg);
@@ -103,6 +113,52 @@ class JoinAction {
 
         return null;
     }
+
+
+    async createGameAndJoinSinglePlayer(ws, queue) {
+
+        let shortid = ws.user.shortid;
+        let name = ws.user.displayname;
+        let game_slug = queue.game_slug;
+        let mode = queue.mode;
+
+        //create room using the first player in lobby
+        let room = await r.createRoom(shortid, 0, game_slug, mode);
+        let room_slug = room.room_slug;
+
+        let actions = [];
+        let id = shortid;
+
+        let msg = {
+            type: 'join',
+            user: { id, name },
+            room_slug
+        }
+        actions.push(msg);
+
+        this.onLeaveQueue(ws);
+
+        await this.sendJoinRequest(game_slug, room_slug, actions, shortid)
+    }
+
+    async sendJoinRequest(game_slug, room_slug, actions, shortid) {
+        try {
+            //tell our game server to load the game, if one doesn't exist already
+            let msg = {
+                game_slug,
+                room_slug
+            }
+            let key = game_slug + '/' + room_slug;
+            await rabbitmq.publishQueue('loadGame', { msg, key, actions });
+
+            console.log("Assign: ", shortid, room_slug);
+            await r.assignPlayerRoom(shortid, room_slug, game_slug);
+        }
+        catch (e) {
+            console.error(e);
+        }
+    }
+
 
     async checkInRoom(ws) {
         let rooms = await storage.getPlayerRooms(ws.user.shortid);
@@ -155,6 +211,16 @@ class JoinAction {
                     name: ws.user.displayname
                 },
                 queues
+            }
+
+            for (let queue of queues) {
+                let gameinfo = await storage.getGameInfo(queue.game_slug);
+                let min = gameinfo.minplayers;
+                let max = gameinfo.maxplayers;
+                if (max == 1) {
+                    await this.createGameAndJoinSinglePlayer(ws, queue)
+                    return null;
+                }
             }
 
             await rabbitmq.publishQueue('joinQueue', msg);
