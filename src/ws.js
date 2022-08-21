@@ -111,11 +111,13 @@ class WSNode {
             storage.addUser(ws);
 
 
-            ChatManager.watchChat(ws);
+
 
             if (await JoinAction.checkInRoom(ws))
                 return null;
         }
+
+        ChatManager.watchChat(ws);
 
     }
 

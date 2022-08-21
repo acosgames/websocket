@@ -32,6 +32,9 @@ class ChatManager {
         ws.subscribe('acos');
 
         //send them the chat history of last X lines
+        if (this.messageHistory.length == 0)
+            return;
+
         let msg = { type: 'chat', payload: this.messageHistory };
         ws.send(encode(msg), true, false);
     }
@@ -57,9 +60,9 @@ class ChatManager {
             return null;
 
         let displayname = ws.user.displayname;
-        let game_slug = action.payload.game_slug;
+        let game_slug = action.payload.game_slug || undefined;
         let message = action.payload.message;
-        let icon = null;
+        let icon = undefined;
         if (game_slug) {
             let game = await storage.getGameInfo(game_slug);
             if (game) {
