@@ -3,6 +3,8 @@ const onLeave = require('./onLeave');
 const onSkip = require('./onSkip');
 const onPing = require('./onPing');
 
+const ChatManager = require('./ChatManager');
+
 const { decode } = require('shared/util/encoder');
 
 const mq = require('shared/services/rabbitmq');
@@ -30,6 +32,7 @@ class Action {
         this.system['joinroom'] = JoinAction.onJoinRoom.bind(JoinAction);
         this.system['leavequeue'] = JoinAction.onLeaveQueue.bind(JoinAction);
         this.system['ping'] = onPing;
+        this.system['chat'] = ChatManager.onChatSend.bind(ChatManager);
 
         // this.actions['spectate'] = JoinAction.onJoinSpectate.bind(JoinAction);
         this.actions = {};

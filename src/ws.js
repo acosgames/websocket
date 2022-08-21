@@ -19,6 +19,7 @@ const storage = require('./storage');
 const redis = require('shared/services/redis');
 const rabbitmq = require('shared/services/rabbitmq');
 const { encode } = require('shared/util/encoder');
+const ChatManager = require('./ChatManager');
 
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -108,6 +109,9 @@ class WSNode {
         if (ws.loggedIn != 'LURKER') {
             console.log("User connected: ", ws.user.shortid, ws.user.displayname);
             storage.addUser(ws);
+
+
+            ChatManager.watchChat(ws);
 
             if (await JoinAction.checkInRoom(ws))
                 return null;

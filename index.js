@@ -3,6 +3,8 @@ const credutil = require('shared/util/credentials');
 
 const WSNode = require('./src/ws');
 
+const ChatManager = require('./src/ChatManager');
+
 axios.interceptors.response.use(
     response => {
         return response
@@ -39,6 +41,8 @@ async function start() {
 
 
     await WSNode.connect();
+
+    ChatManager.start();
 
     console.log("[WebSocket] STARTED @ " + (new Date()).toString());
 }
