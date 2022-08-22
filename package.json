@@ -13,13 +13,16 @@
   "license": "ISC",
   "dependencies": {
     "axios": "^0.21.1",
+    "bad-words": "^3.0.4",
     "bson": "^4.2.3",
     "cookie": "^0.4.1",
-    "shared": "file:../shared",
     "priorityqueuejs": "^2.0.0",
     "pson": "^2.0.0",
-    "uWebSockets.js": "uNetworking/uWebSockets.js#v20.4.0",
+    "re2": "^1.17.7",
+    "shared": "file:../shared",
+    "url-regex-safe": "^3.0.0",
     "uuid": "^8.3.2",
+    "uWebSockets.js": "uNetworking/uWebSockets.js#v20.4.0",
     "websocket": "^1.0.33"
   }
 }
