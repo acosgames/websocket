@@ -74,7 +74,7 @@ class ChatManager {
 
         let displayname = ws.user.displayname;
         let game_slug = action.payload.game_slug || undefined;
-        let message = filter.clean(action.payload.message);
+        let message = (action.payload.message);
         message = message.substring(0, 120);
         let icon = undefined;
 
