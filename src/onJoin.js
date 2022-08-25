@@ -165,15 +165,22 @@ class JoinAction {
         if (!rooms || rooms.length == 0)
             return false;
 
+        let activeRooms = [];
+
         console.log("User " + ws.user.shortid + " has " + rooms.length + " rooms.");
         for (var i = 0; i < rooms.length; i++) {
             let roomState = await storage.getRoomState(rooms[i].room_slug, ws.user.shortid);
+            if (!roomState) {
+                storage.cleanupRoom(rooms[i].room_slug);
+                continue;
+            }
             this.subscribeToRoom(ws, rooms[i].room_slug, roomState);
-            rooms[i].payload = roomState;
+            rooms[i].gamestate = roomState;
+            activeRooms.push(rooms[i]);
         }
 
         var playerCount = storage.getPlayerCount();
-        let response = { type: 'inrooms', payload: rooms, playerCount }
+        let response = { type: 'inrooms', payload: activeRooms, playerCount }
         // console.log("onJoinGame 1");
         ws.send(encode(response), true, false);
 
@@ -342,21 +349,20 @@ class JoinAction {
             ws.subscribe(room_slug);
 
             let room = await storage.getRoomMeta(room_slug);
-            let mode = room.mode;
-            let game_slug = room.game_slug;
-            let gameid = room.gameid;
-            let version = room.version;
+            // let mode = room.mode;
+            // let game_slug = room.game_slug;
+            // let gameid = room.gameid;
+            // let version = room.version;
+
+            // let game = await storage.getGameInfo(game_slug);
+
             let msg = {
                 type: 'joined',
-                payload: cloneObj(roomState),
-                mode,
-                room_slug,
-                game_slug,
-                // gameid,
-                version
+                payload: roomState,
+                room,
             };
 
-            // console.log('[onJoined] Sending message: ', msg.payload);
+            // console.log('[onJoined] Sending message: ', msg.payload); 
             let encoded = encode(msg);
             console.log("onJoined 1");
             ws.send(encoded, true, false);
