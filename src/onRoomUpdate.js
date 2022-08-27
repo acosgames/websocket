@@ -42,12 +42,16 @@ class RoomUpdate {
         try {
 
             let previousGamestate = await storage.getRoomState(room_slug) || {};
-            if (!previousGamestate)
+            if (!previousGamestate) {
+                this.killGameRoom({ room_slug });
                 return true;
+            }
             // console.log("Previous: ", previousGamestate.players);
             let gamestate = delta.merge(previousGamestate, msg.payload);
-            if (!gamestate)
+            if (!gamestate) {
+                this.killGameRoom({ room_slug });
                 return true;
+            }
 
             let playerList = Object.keys(gamestate.players || {});
             // console.log("Delta: ", msg);
@@ -71,8 +75,10 @@ class RoomUpdate {
                 break;
             }
 
-            if (!usersFound)
+            if (!usersFound && msg.type != 'join') {
+                this.killGameRoom({ room_slug });
                 return true;
+            }
 
             if (msg.type == 'join') {
                 await JoinAction.onJoinResponse(room_slug, gamestate);

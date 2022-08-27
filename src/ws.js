@@ -94,6 +94,11 @@ class WSNode {
     }
 
     onClientClose(ws, code, message) {
+        if (ws.user.duplicate) {
+            console.log("Duplicate Client Closed: ", ws.user.shortid, ws.user.displayname);
+            ws.user.duplicate = false;
+            return;
+        }
         console.log("Client Closed: ", ws.user.shortid, ws.user.displayname);
         JoinAction.onLeaveQueue(ws);
         storage.removeUser(ws);
@@ -104,6 +109,15 @@ class WSNode {
             console.log('unauthorized user: ', ws)
             ws.end()
             return
+        }
+
+        let existingUser = storage.getUser(ws.user.shortid);
+        if (existingUser && existingUser != ws) {
+            let msg = { type: 'duplicatetabs' };
+            ws.send(encode(msg), true, false);
+            ws.user.duplicate = true;
+            ws.end();
+            return;
         }
 
         if (ws.loggedIn != 'LURKER') {
