@@ -46,8 +46,8 @@ class JoinAction {
             }
 
             //track user who is pending a join 
-            let key = roomMeta.game_slug + roomMeta.mode;
-            this.pendingJoin(ws, key);
+            // let key = ws.user.shortid + roomMeta.game_slug + roomMeta.mode;
+            // this.pendingJoin(ws, key);
 
             return await this.onPreJoinRoom(ws, action, roomMeta);
         }
@@ -77,16 +77,11 @@ class JoinAction {
             return null;
 
         try {
+            let team = action?.payload?.team;
             let queues = action?.payload?.queues;
             let owner = action?.payload?.owner;
-            let msg = {
-                user: {
-                    id: ws.user.shortid,
-                    name: ws.user.displayname
-                },
-                queues, owner
-            }
 
+            //check if game is single player
             for (let queue of queues) {
                 let gameinfo = await storage.getGameInfo(queue.game_slug);
                 let min = gameinfo.minplayers;
@@ -97,6 +92,8 @@ class JoinAction {
                 }
             }
 
+
+            let msg = { team, queues, owner }
             await rabbitmq.publishQueue('joinQueue', msg);
 
             // this.pendingJoin(ws, game_slug + mode);
@@ -209,17 +206,21 @@ class JoinAction {
             mode = 'rank'
         }
 
-        let game_slug = action.payload.game_slug;
-        let queues = [{ game_slug, mode }];
-        try {
-            let msg = {
-                user: {
-                    id: ws.user.shortid,
-                    name: ws.user.displayname
-                },
-                queues
-            }
+        let team = action?.payload?.team;
+        let queues = action?.payload?.queues;
+        let owner = action?.payload?.owner;
 
+        // let game_slug = action.payload.game_slug;
+        // let queues = [{ game_slug, mode }];
+        try {
+            // let user = {
+            //     id: ws.user.shortid,
+            //     name: ws.user.displayname
+            // }
+
+
+
+            //check if joining single player game
             for (let queue of queues) {
                 let gameinfo = await storage.getGameInfo(queue.game_slug);
                 let min = gameinfo.minplayers;
@@ -230,9 +231,15 @@ class JoinAction {
                 }
             }
 
+
+            let msg = {
+                team,
+                queues,
+                owner
+            }
             await rabbitmq.publishQueue('joinQueue', msg);
 
-            this.pendingJoin(ws, game_slug + mode);
+            // this.pendingJoin(ws, ws.user.shortid + game_slug + mode);
 
             console.log("User " + ws.user.shortid + " joining queue for " + game_slug + '-' + mode);
             //tell user they have joined the queue
@@ -295,14 +302,14 @@ class JoinAction {
                     return false;
                 }
 
-                let key = roomMeta.game_slug + roomMeta.mode;
-                let pending = ws.pending[key];
-                if (!pending) {
-                    console.error("[onJoinResponse] missing pending for: ", id, room_slug);
-                }
-                else {
-                    delete ws.pending[key];
-                }
+                // let key = id + roomMeta.room_slug;
+                // let pending = ws.pending[key];
+                // if (!pending) {
+                //     console.error("[onJoinResponse] missing pending for: ", id, room_slug);
+                // }
+                // else {
+                //     delete ws.pending[key];
+                // }
 
                 await this.onJoined(ws, room_slug);
             }
@@ -432,10 +439,10 @@ class JoinAction {
         }
     }
 
-    async pendingJoin(ws, room_slug) {
+    async pendingJoin(ws, key) {
         if (!ws.pending)
             ws.pending = {};
-        ws.pending[room_slug] = true;
+        ws.pending[key] = true;
     }
 
 
