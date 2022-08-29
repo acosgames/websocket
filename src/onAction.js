@@ -80,7 +80,7 @@ class Action {
         }
 
 
-        action.user = { id: ws.user.shortid };
+        action.user = { shortid: ws.user.shortid };
 
 
 
@@ -152,7 +152,7 @@ class Action {
             return true;
         }
 
-        let userid = action.user.id;
+        let userid = action.user.shortid;
         let nextid = next?.id;
         let teams = roomState?.teams;
 
