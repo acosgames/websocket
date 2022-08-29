@@ -29,9 +29,57 @@ class RoomUpdate {
         }, 3000)
 
 
+        let qWS2 = await mq.findExistingQueue('queue');
+        await mq.subscribeQueue(qWS2, this.onQueueUpdate.bind(this));
+
+        setTimeout(async () => {
+            let queueKey = await mq.subscribe('ws', 'onQueueUpdate', this.onQueueUpdate.bind(this), qWS2);
+        }, 3000)
+
         //mq.subscribe('ws', 'onJoinResponse', JoinAction.onJoinResponse.bind(JoinAction));
     }
 
+    async onQueueUpdate(msg) {
+
+        if (!msg || !msg.type) {
+            return true;
+        }
+
+        let party = msg.payload;
+
+        if (msg.type == 'added') {
+            if (party.players) {
+                msg.type = 'addedQueue';
+                let encoded = encode(msg);
+                for (const player in party.players) {
+
+                    let ws = storage.getUser(player.shortid);
+                    if (!ws)
+                        continue;
+
+                    ws.send(encoded, true, false);
+                }
+            }
+
+        }
+        else if (msg.type == 'removed') {
+
+            if (party.players) {
+                let encoded = encode({ type: 'removedQueue' });
+                for (const player in party.players) {
+
+                    let ws = storage.getUser(player.shortid);
+                    if (!ws)
+                        continue;
+
+                    ws.send(encoded, true, false);
+                }
+            }
+
+        }
+
+
+    }
 
     async onRoomUpdate(msg) {
         // profiler.StartTime('onRoomUpdate');

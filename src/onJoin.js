@@ -77,32 +77,57 @@ class JoinAction {
             return null;
 
         try {
-            let team = action?.payload?.team;
+
+            let captain = ws.user.shortid;
+            let teamid = action?.payload?.teamid;
             let queues = action?.payload?.queues;
             let owner = action?.payload?.owner;
+            let players = null;
+            if (teamid) {
+                let team = await storage.getTeam(teamid);
+
+                if (captain != team.captain) {
+                    return null;
+                }
+
+                players = team.players;
+            } else {
+                players = [{ shortid: captain, displayname: ws.user.displayname }];
+            }
+
+            let approvedQueues = [];
 
             //check if game is single player
             for (let queue of queues) {
                 let gameinfo = await storage.getGameInfo(queue.game_slug);
                 let min = gameinfo.minplayers;
                 let max = gameinfo.maxplayers;
+
+                if (players.length > min) {
+                    continue;
+                }
+
                 if (max == 1) {
                     await this.createGameAndJoinSinglePlayer(ws, queue)
                     return null;
                 }
+
+                approvedQueues.push(queue);
+
             }
 
 
-            let msg = { team, queues, owner }
+
+            let msg = { captain, teamid, players, queues: approvedQueues, owner }
             await rabbitmq.publishQueue('joinQueue', msg);
 
             // this.pendingJoin(ws, game_slug + mode);
 
-            console.log("User " + ws.user.shortid + " joining " + queues.length + " queues.");
-            //tell user they have joined the queue
-            let response = { type: 'queue', queues, playerCount }
-            // console.log("onJoinGame 2");
-            ws.send(encode(response), true, false);
+            // console.log("User " + ws.user.shortid + " joining " + queues.length + " queues.");
+            // //tell user they have joined the queue
+            // let response = { type: 'queue', queues, playerCount }
+            // // console.log("onJoinGame 2");
+            // ws.send(encode(response), true, false);
         }
         catch (e) {
             console.error(e);
@@ -115,7 +140,7 @@ class JoinAction {
     async createGameAndJoinSinglePlayer(ws, queue) {
 
         let shortid = ws.user.shortid;
-        let name = ws.user.displayname;
+        let displayname = ws.user.displayname;
         let game_slug = queue.game_slug;
         let mode = queue.mode;
 
@@ -123,15 +148,13 @@ class JoinAction {
         let room = await r.createRoom(shortid, 0, game_slug, mode);
         let room_slug = room.room_slug;
 
-        let actions = [];
-        let id = shortid;
-
         let msg = {
             type: 'join',
-            user: { id, name },
+            user: { shortid, displayname },
             room_slug
         }
-        actions.push(msg);
+
+        let actions = [msg];
 
         this.onLeaveQueue(ws);
 
@@ -141,12 +164,12 @@ class JoinAction {
     async sendJoinRequest(game_slug, room_slug, actions, shortid) {
         try {
             //tell our game server to load the game, if one doesn't exist already
-            let msg = {
-                game_slug,
-                room_slug
-            }
-            let key = game_slug + '/' + room_slug;
-            await rabbitmq.publishQueue('loadGame', { msg, key, actions });
+            // let msg = {
+            //     game_slug,
+            //     room_slug
+            // }
+            // let key = game_slug + '/' + room_slug;
+            await rabbitmq.publishQueue('loadGame', { game_slug, room_slug, actions });
 
             console.log("Assign: ", shortid, room_slug);
             await r.assignPlayerRoom(shortid, room_slug, game_slug);
@@ -206,46 +229,47 @@ class JoinAction {
             mode = 'rank'
         }
 
-        let team = action?.payload?.team;
-        let queues = action?.payload?.queues;
-        let owner = action?.payload?.owner;
 
-        // let game_slug = action.payload.game_slug;
-        // let queues = [{ game_slug, mode }];
         try {
-            // let user = {
-            //     id: ws.user.shortid,
-            //     name: ws.user.displayname
-            // }
+            let captain = ws.user.shortid;
+            let teamid = action?.payload?.teamid;
+            let queues = action?.payload?.queues;
+            let owner = action?.payload?.owner;
+            let players = null;
+            if (teamid) {
+                let team = await storage.getTeam(teamid);
 
+                if (captain != team.captain) {
+                    return null;
+                }
 
+                players = team.players;
+            } else {
+                players = [{ shortid: captain, displayname: ws.user.displayname }];
+            }
 
-            //check if joining single player game
+            let approvedQueues = [];
+
+            //check if game is single player
             for (let queue of queues) {
                 let gameinfo = await storage.getGameInfo(queue.game_slug);
                 let min = gameinfo.minplayers;
                 let max = gameinfo.maxplayers;
+
+                if (players.length > min) {
+                    continue;
+                }
+
                 if (max == 1) {
                     await this.createGameAndJoinSinglePlayer(ws, queue)
                     return null;
                 }
+
+                approvedQueues.push(queue);
             }
 
-
-            let msg = {
-                team,
-                queues,
-                owner
-            }
+            let msg = { captain, teamid, players, queues: approvedQueues, owner }
             await rabbitmq.publishQueue('joinQueue', msg);
-
-            // this.pendingJoin(ws, ws.user.shortid + game_slug + mode);
-
-            console.log("User " + ws.user.shortid + " joining queue for " + game_slug + '-' + mode);
-            //tell user they have joined the queue
-            let response = { type: 'queue', queues, playerCount }
-            // console.log("onJoinGame 2");
-            ws.send(encode(response), true, false);
         }
         catch (e) {
             console.error(e);
@@ -328,7 +352,7 @@ class JoinAction {
         try {
             let msg = {
                 user: {
-                    id: ws.user.shortid
+                    shortid: ws.user.shortid
                 }
             }
 

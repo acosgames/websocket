@@ -9,6 +9,7 @@ class Storage {
         this.users = {};
         this.userCount = 0;
         this.app = null;
+
     }
 
     setWSApp(app) {
@@ -22,6 +23,21 @@ class Storage {
     getPlayerCount() {
         return this.userCount || 0;
     }
+
+
+    async setTeam(teamid, teaminfo) {
+        cache.set('team/' + teamid, teaminfo, 120);
+    }
+
+    async getTeam(teamid) {
+        let teaminfo = await cache.get('team/' + teamid);
+        return teaminfo;
+    }
+
+    async deleteTeam(teamid) {
+        await cache.del('team/' + teamid);
+    }
+
 
     async getRoomMeta(room_slug) {
         let room = await r.findRoom(room_slug);

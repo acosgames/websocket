@@ -100,7 +100,7 @@ class WSNode {
             return;
         }
         console.log("Client Closed: ", ws.user.shortid, ws.user.displayname);
-        JoinAction.onLeaveQueue(ws);
+        // JoinAction.onLeaveQueue(ws);
         storage.removeUser(ws);
     }
 
