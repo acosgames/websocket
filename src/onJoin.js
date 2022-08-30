@@ -150,7 +150,7 @@ class JoinAction {
 
         let msg = {
             type: 'join',
-            user: { shortid, displayname },
+            user: { id: shortid, displayname },
             room_slug
         }
 
@@ -314,28 +314,23 @@ class JoinAction {
     async onJoinResponse(room_slug, gamestate) {
         try {
             if (gamestate && gamestate.events && gamestate.events.join) {
-                let id = gamestate.events.join.id;
-                let ws = await storage.getUser(id);
 
-                let roomMeta = await storage.getRoomMeta(room_slug);
-                if (!roomMeta)
-                    return false;
+                let ids = gamestate.events.join;
+                for (const id of ids) {
+                    let ws = await storage.getUser(id);
 
-                if (!ws) {
-                    console.error("[onJoinResponse] missing websocket for: ", id);
-                    return false;
+                    let roomMeta = await storage.getRoomMeta(room_slug);
+                    if (!roomMeta)
+                        return false;
+
+                    if (!ws) {
+                        console.error("[onJoinResponse] missing websocket for: ", id);
+                        return false;
+                    }
+
+
+                    await this.onJoined(ws, room_slug);
                 }
-
-                // let key = id + roomMeta.room_slug;
-                // let pending = ws.pending[key];
-                // if (!pending) {
-                //     console.error("[onJoinResponse] missing pending for: ", id, room_slug);
-                // }
-                // else {
-                //     delete ws.pending[key];
-                // }
-
-                await this.onJoined(ws, room_slug);
             }
 
             return true;

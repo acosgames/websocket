@@ -51,7 +51,7 @@ class RoomUpdate {
             if (party.players) {
                 msg.type = 'addedQueue';
                 let encoded = encode(msg);
-                for (const player in party.players) {
+                for (const player of party.players) {
 
                     let ws = storage.getUser(player.shortid);
                     if (!ws)
