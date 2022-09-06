@@ -73,7 +73,7 @@ class Action {
         let action = {};
         action.type = unsafeAction.type;
         action.payload = unsafeAction.payload;
-        action.seq = unsafeAction.seq;
+        action.timeseq = unsafeAction.timeseq;
 
         if (unsafeAction.room_slug) {
             action.room_slug = unsafeAction.room_slug;
@@ -158,7 +158,7 @@ class Action {
 
         let passed = this.validateNextUser(userid, nextid, teams);
         if (passed) {
-            if (roomState?.timer?.seq != action.seq) {
+            if (roomState?.timer?.seq != action.timeseq) {
                 JoinAction.subscribeToRoom(ws, action.room_slug, roomState);
                 console.error("User failed seq validation: ", roomState.timer, roomState.next);
                 return false;
