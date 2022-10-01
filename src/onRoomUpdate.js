@@ -4,7 +4,7 @@ const storage = require('./storage');
 
 const mq = require('shared/services/rabbitmq');
 const redis = require('shared/services/redis');
-const JoinAction = require('./onJoin');
+const JoinAction = require('./onJoinRequest');
 const profiler = require('shared/util/profiler');
 const delta = require('shared/util/delta');
 const r = require('shared/services/room');
@@ -94,6 +94,25 @@ class RoomUpdate {
                 this.killGameRoom({ room_slug });
                 return true;
             }
+
+            let action = msg.payload.action;
+            if (action?.user)
+                action.user = action.user.id;
+
+            if (action?.user?.id)
+                action.user = action.user.id;
+
+            if (action && 'timeseq' in action)
+                delete action.timeseq;
+
+            if (action && 'timeleft' in action)
+                delete action.timeleft;
+
+            if (action && 'room_slug' in action)
+                delete action.room_slug;
+
+            msg.payload.action = action;
+
             // console.log("Previous: ", previousGamestate.players);
             let gamestate = delta.merge(previousGamestate, msg.payload);
             if (!gamestate) {
@@ -110,23 +129,26 @@ class RoomUpdate {
             let hiddenState = delta.hidden(copy.payload.state);
             let hiddenPlayers = delta.hidden(copy.payload.players);
 
+
+
+
             storage.setRoomState(room_slug, gamestate);
 
             //skip doing any work if our websocket server doesn't have any of the users.
-            let usersFound = false;
-            for (var id of playerList) {
-                let ws = await storage.getUser(id);
-                if (!ws) {
-                    continue;
-                }
-                usersFound = true;
-                break;
-            }
+            // let usersFound = false;
+            // for (var id of playerList) {
+            //     let ws = await storage.getUser(id);
+            //     if (!ws) {
+            //         continue;
+            //     }
+            //     usersFound = true;
+            //     break;
+            // }
 
-            if (!usersFound && msg.type != 'join') {
-                this.killGameRoom({ room_slug });
-                return true;
-            }
+            // if (!usersFound && msg.type != 'join') {
+            //     this.killGameRoom({ room_slug });
+            //     return true;
+            // }
 
             if (msg.type == 'join') {
                 await JoinAction.onJoinResponse(room_slug, gamestate);
@@ -136,10 +158,6 @@ class RoomUpdate {
                 // if (msg?.payload?.error)
                 //     copy.error = msg.payload.error;
             }
-
-            let app = storage.getWSApp();
-
-
 
 
             if (hiddenPlayers)
@@ -172,11 +190,12 @@ class RoomUpdate {
                 //return true;
             }
 
-            if (copy.payload.kick) {
-                this.kickPlayers(copy);
-            }
+            // if (copy.payload.kick) {
+            //     this.kickPlayers(copy);
+            // }
 
             // setTimeout(() => {
+            let app = storage.getWSApp();
             let encoded = encode(copy);
             console.log("Publishing [" + room_slug + "] with " + encoded.byteLength + ' bytes', JSON.stringify(copy, null, 2));
             app.publish(room_slug, encoded, true, false)
@@ -192,55 +211,55 @@ class RoomUpdate {
         return false;
     }
 
-    async kickPlayers(msg) {
-        let game = msg.payload;
-        let room_slug = msg.room_slug;
-        let players = game.kick;
-        for (var id = 0; i < players.length; id++) {
-            if (game.players && game.players[id])
-                delete game.players[id];
-        }
+    // async kickPlayers(msg) {
+    //     let game = msg.payload;
+    //     let room_slug = msg.room_slug;
+    //     let players = game.kick;
+    //     for (var id = 0; i < players.length; id++) {
+    //         if (game.players && game.players[id])
+    //             delete game.players[id];
+    //     }
 
-        for (var id = 0; i < players.length; id++) {
-            let ws = await storage.getUser(id);
-            if (!ws)
-                continue;
-
-
-            ws.unsubscribe(room_slug);
-            let response = { type: 'kicked', room_slug, payload: game }
-            let encoded = encode(response);
-            ws.send(encoded, true, false);
-        }
-    }
-
-    async updatePlayerRatings(msg) {
-        let game = msg.payload;
-        let room_slug = msg.room_slug;
-        if (!game || !game.players)
-            return;
-        let meta = await storage.getRoomMeta(room_slug);
+    //     for (var id = 0; i < players.length; id++) {
+    //         let ws = await storage.getUser(id);
+    //         if (!ws)
+    //             continue;
 
 
-        let playerRatings = [];
-        for (var id in game.players) {
-            let ws = storage.getUser(id);
-            if (!ws)
-                continue;
+    //         ws.unsubscribe(room_slug);
+    //         let response = { type: 'kicked', room_slug, payload: game }
+    //         let encoded = encode(response);
+    //         ws.send(encoded, true, false);
+    //     }
+    // }
 
-            let player = game.players[id];
-            let playerRating = {
-                mu: player.mu,
-                sigma: player.sigma,
-                rating: player.rating
-            };
-            playerRatings.push(playerRating)
-            r.setPlayerRating(id, meta.game_slug, playerRating);
+    // async updatePlayerRatings(msg) {
+    //     let game = msg.payload;
+    //     let room_slug = msg.room_slug;
+    //     if (!game || !game.players)
+    //         return;
+    //     let meta = await storage.getRoomMeta(room_slug);
 
-            delete player.sigma;
-            delete player.mu;
-        }
-    }
+
+    //     let playerRatings = [];
+    //     for (var id in game.players) {
+    //         let ws = storage.getUser(id);
+    //         if (!ws)
+    //             continue;
+
+    //         let player = game.players[id];
+    //         let playerRating = {
+    //             mu: player.mu,
+    //             sigma: player.sigma,
+    //             rating: player.rating
+    //         };
+    //         playerRatings.push(playerRating)
+    //         r.setPlayerRating(id, meta.game_slug, playerRating);
+
+    //         delete player.sigma;
+    //         delete player.mu;
+    //     }
+    // }
 
     async killGameRoom(msg) {
 
@@ -252,14 +271,14 @@ class RoomUpdate {
         storage.cleanupRoom(msg.room_slug);
     }
 
-    async processTimelimit(next) {
-        let seconds = next.timelimit;
-        seconds = Math.min(60, Math.max(10, seconds));
+    // async processTimelimit(next) {
+    //     let seconds = next.timelimit;
+    //     seconds = Math.min(60, Math.max(10, seconds));
 
-        let now = (new Date()).getTime();
-        let deadline = now + (seconds * 1000);
-        next.deadline = deadline;
-    }
+    //     let now = (new Date()).getTime();
+    //     let deadline = now + (seconds * 1000);
+    //     next.deadline = deadline;
+    // }
 }
 
 module.exports = new RoomUpdate();

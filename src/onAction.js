@@ -1,4 +1,4 @@
-const JoinAction = require('./onJoin');
+const JoinAction = require('./onJoinRequest');
 const onLeave = require('./onLeave');
 const onSkip = require('./onSkip');
 const onPing = require('./onPing');
@@ -29,7 +29,7 @@ class Action {
         this.system = {};
         this.system['joinqueues'] = JoinAction.onJoinQueues.bind(JoinAction);
         this.system['joingame'] = JoinAction.onJoinGame.bind(JoinAction);
-        this.system['joinroom'] = JoinAction.onJoinRoom.bind(JoinAction);
+        //this.system['joinroom'] = JoinAction.onJoinRoom.bind(JoinAction);
         this.system['leavequeue'] = JoinAction.onLeaveQueue.bind(JoinAction);
         this.system['ping'] = onPing;
         this.system['chat'] = ChatManager.onChatSend.bind(ChatManager);
@@ -158,7 +158,7 @@ class Action {
 
         let passed = this.validateNextUser(userid, nextid, teams);
         if (passed) {
-            if (roomState?.timer?.seq != action.timeseq) {
+            if (roomState?.timer?.sequence != action.timeseq) {
                 JoinAction.subscribeToRoom(ws, action.room_slug, roomState);
                 console.error("User failed seq validation: ", roomState.timer, roomState.next);
                 return false;

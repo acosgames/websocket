@@ -194,7 +194,8 @@ class JoinAction {
                 storage.cleanupRoom(rooms[i].room_slug);
                 continue;
             }
-            this.subscribeToRoom(ws, rooms[i].room_slug, roomState);
+            this.onJoined(ws, rooms[i].room_slug, roomState);
+            // this.subscribeToRoom(ws, rooms[i].room_slug, roomState);
             rooms[i].gamestate = roomState;
             activeRooms.push(rooms[i]);
         }
@@ -446,11 +447,11 @@ class JoinAction {
 
         if (roomState) {
             console.log("Subscribing user: ", ws.user.shortid, room_slug);
-            ws.subscribe(room_slug);
+            //ws.subscribe(room_slug);
 
-            setTimeout(() => {
-                this.onJoined(ws, room_slug, roomState);
-            }, 0);
+            //setTimeout(() => {
+            this.onJoined(ws, room_slug, roomState);
+            //}, 0);
             return true;
         } else {
             console.error("Room state does not exist.", ws.user.shortid, room_slug)

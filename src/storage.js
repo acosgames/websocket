@@ -138,6 +138,8 @@ class Storage {
         // return rooms;
 
         let rooms = await r.findPlayerRooms(id);
+        if (!rooms)
+            return [];
         // cache.setremote(key, rooms, 100);
         return rooms;
     }

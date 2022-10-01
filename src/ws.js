@@ -3,7 +3,7 @@ const UWSjs = require('uWebSockets.js/uws');
 const uws = UWSjs.App();
 const events = require('events');
 const auth = require('./authentication');
-const JoinAction = require('./onJoin');
+const JoinAction = require('./onJoinRequest');
 const InstanceLocalService = require('shared/services/instancelocal');
 const local = new InstanceLocalService();
 
@@ -61,7 +61,7 @@ class WSNode {
             close: this.onClientClose.bind(this)
         }
 
-        await this.register();
+        // await this.register();
         //await this.connectToRedis(options);
         //await this.connectToMQ(options);
 
@@ -124,11 +124,12 @@ class WSNode {
             console.log("User connected: ", ws.user.shortid, ws.user.displayname);
             storage.addUser(ws);
 
-
-
-
-            if (await JoinAction.checkInRoom(ws))
-                return null;
+            //notify user of their active rooms
+            let activeRooms = await JoinAction.getPlayerActiveRooms(ws);
+            if (activeRooms) {
+                let response = { type: 'inrooms', payload: activeRooms }
+                ws.send(encode(response), true, false);
+            }
         }
 
         ChatManager.watchChat(ws);
