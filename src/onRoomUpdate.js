@@ -113,6 +113,9 @@ class RoomUpdate {
 
             msg.payload.action = action;
 
+            previousGamestate.action = null;
+            previousGamestate.events = null;
+
             // console.log("Previous: ", previousGamestate.players);
             let gamestate = delta.merge(previousGamestate, msg.payload);
             if (!gamestate) {
