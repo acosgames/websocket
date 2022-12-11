@@ -49,7 +49,11 @@ class ChatManager {
     onChatReceive(msg) {
         let app = storage.getWSApp();
         console.log("Broadcasting chat message:", msg);
-        app.publish('acos', encode(msg), true, false);
+        let channel = 'acos';
+        if (msg.room_slug) {
+            channel = msg.room_slug;
+        }
+        app.publish(channel, encode(msg), true, false);
     }
 
     async onChatSend(ws, action) {
@@ -74,11 +78,12 @@ class ChatManager {
 
         let displayname = ws.user.displayname;
         let game_slug = action.payload.game_slug || undefined;
+        let room_slug = action.payload.room_slug || undefined;
         let message = (action.payload.message);
         message = message.substring(0, 120);
         let icon = undefined;
 
-        let payload = { displayname, message, timestamp: (new Date).getTime(), };
+        let payload = { displayname, room_slug, message, timestamp: (new Date).getTime(), };
 
         if (game_slug) {
             let game = await storage.getGameInfo(game_slug);
