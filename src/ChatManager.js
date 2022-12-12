@@ -98,6 +98,12 @@ class ChatManager {
         let response = { type: 'chat', payload }
         mq.publish('chat', 'chat', response);
 
+        //don't save game room chat
+        if (room_slug)
+            return null;
+
+
+        //save chat history for main lobby
         this.messageHistory.push(payload);
 
         if (this.messageHistory.length > MAX_CHAT_HISTORY) {
