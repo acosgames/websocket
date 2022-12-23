@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node index.js",
     "dev": "pm2 start index.js --name websocket --node-args=\"--inspect=10004 --trace-warnings\" --watch \". ../shared\" --ignore-watch \"sessions public package.json node_modules\"",
-    "installws": "yarn add uWebSockets.js@uNetworking/uWebSockets.js#v20.4.0",
+    "installws": "yarn add uWebSockets.js@uNetworking/uWebSockets.js#v20.15.0",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
@@ -20,9 +20,9 @@
     "pson": "^2.0.0",
     "re2": "^1.17.7",
     "shared": "file:../shared",
+    "uWebSockets.js": "uNetworking/uWebSockets.js#v20.15.0",
     "url-regex-safe": "^3.0.0",
     "uuid": "^8.3.2",
-    "uWebSockets.js": "uNetworking/uWebSockets.js#v20.4.0",
     "websocket": "^1.0.33"
   }
 }

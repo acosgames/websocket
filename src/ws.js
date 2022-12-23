@@ -1,5 +1,5 @@
 
-const UWSjs = require('uWebSockets.js/uws');
+const UWSjs = require('uWebSockets.js');
 const uws = UWSjs.App();
 const events = require('events');
 const auth = require('./authentication');
