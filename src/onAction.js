@@ -229,6 +229,7 @@ class Action {
             // if (!exists) {
             //     await mq.publishQueue('loadGame', msg)
             // }
+            console.log("ForwardAction", Date.now())
             let key = game_slug + '/' + msg.room_slug;
             await mq.publish('action', key, msg);
         }

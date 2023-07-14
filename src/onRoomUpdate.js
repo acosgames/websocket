@@ -176,7 +176,7 @@ class RoomUpdate {
                         payload: hiddenPlayers[id]
                     }
                     let encodedPrivate = encode(privateMsg);
-                    console.log("Publishing Private [" + room_slug + "] with " + encodedPrivate.byteLength + ' bytes', JSON.stringify(privateMsg, null, 2));
+                    // console.log("Publishing Private [" + room_slug + "] with " + encodedPrivate.byteLength + ' bytes', JSON.stringify(privateMsg, null, 2));
 
                     ws.send(encodedPrivate, true, false);
                 }
@@ -200,7 +200,7 @@ class RoomUpdate {
             // setTimeout(() => {
             let app = storage.getWSApp();
             let encoded = encode(copy);
-            console.log("Publishing [" + room_slug + "] with " + encoded.byteLength + ' bytes', JSON.stringify(copy, null, 2));
+            // console.log("Publishing [" + room_slug + "] with " + encoded.byteLength + ' bytes', JSON.stringify(copy, null, 2));
             app.publish(room_slug, encoded, true, false)
             // }, 200)
 
