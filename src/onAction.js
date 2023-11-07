@@ -5,7 +5,7 @@ const onPing = require('./onPing');
 
 const ChatManager = require('./ChatManager');
 
-const { decode } = require('shared/util/encoder');
+const { decode } = require('acos-json-encoder');
 
 const mq = require('shared/services/rabbitmq');
 const storage = require('./storage');

@@ -1,5 +1,5 @@
 
-const { encode, serialize, deserialize } = require('shared/util/encoder');
+const { encode, serialize, deserialize } = require('acos-json-encoder');
 
 class Messenger {
 

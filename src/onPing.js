@@ -1,4 +1,4 @@
-const { encode } = require('shared/util/encoder');
+const { encode } = require('acos-json-encoder');
 const storage = require('./storage');
 
 module.exports = async function onPing(ws, action) {

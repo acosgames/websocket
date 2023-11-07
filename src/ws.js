@@ -18,7 +18,7 @@ const storage = require('./storage');
 
 const redis = require('shared/services/redis');
 const rabbitmq = require('shared/services/rabbitmq');
-const { encode } = require('shared/util/encoder');
+const { encode } = require('acos-json-encoder');
 const ChatManager = require('./ChatManager');
 
 function sleep(ms) {

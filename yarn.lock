@@ -33,6 +33,16 @@
   "resolved" "https://registry.npmjs.org/abbrev/-/abbrev-1.1.1.tgz"
   "version" "1.1.1"
 
+"acos-json-delta@^1.0.4":
+  "integrity" "sha512-0LEF4ITZkIFDDQQ3bhAlbU+JR/22p89SRRs/3jVn7/DQ22mqBLr5tiKNITaUHAENA8345Xan2Ten7L0HS/KQOA=="
+  "resolved" "https://registry.npmjs.org/acos-json-delta/-/acos-json-delta-1.0.4.tgz"
+  "version" "1.0.4"
+
+"acos-json-encoder@^1.0.2":
+  "integrity" "sha512-IodC1XO/l3903baiYnLt1QCfi4ZWxFPx/U0QrpON5s9e5etRLZHhZAdLeB9NnsG8GrIcocWhq9+m7VIx89dQCw=="
+  "resolved" "https://registry.npmjs.org/acos-json-encoder/-/acos-json-encoder-1.0.2.tgz"
+  "version" "1.0.2"
+
 "agent-base@^6.0.2", "agent-base@6":
   "integrity" "sha512-RZNwNclF7+MS/8bDg70amg32dyeZGZxiDuQmZxKLAlQjr3jGyLx+4Kkk58UO7D2QdgFIQCovuSuZESne6RG6XQ=="
   "resolved" "https://registry.npmjs.org/agent-base/-/agent-base-6.0.2.tgz"
@@ -746,7 +756,7 @@
   "version" "1.0.0"
   dependencies:
     "@octokit/rest" "^18.2.1"
-    "amqplib" "^0.8.0"
+    "amqplib" "^0.10.3"
     "aws-sdk" "^2.839.0"
     "axios" "^0.21.1"
     "biguint-format" "^1.0.2"
@@ -754,21 +764,17 @@
     "flake-idgen" "^1.4.0"
     "flakeid" "^1.0.0"
     "jsbi" "^4.1.0"
-    "jsonwebtoken" "^8.5.1"
+    "jsonwebtoken" "^9.0.1"
     "moment" "^2.29.1"
     "moment-timezone" "^0.5.32"
-    "multer" "^1.4.2"
-    "multer-s3" "^2.9.0"
-    "multer-s3-transform" "^2.10.3"
     "mysql2" "^2.2.5"
     "nanoid" "^3.1.20"
     "node-cache" "^5.1.2"
     "pako" "^2.0.4"
     "postgres" "^1.0.2"
     "redis" "^4.0.0"
-    "simple-git" "^2.35.2"
     "uuid" "^8.3.2"
-    "web-push" "^3.4.5"
+    "web-push" "^3.6.3"
 
 "signal-exit@^3.0.7":
   "integrity" "sha512-wnD2ZE+l+SPC/uoS0vXeE9L1+0wuaMqKlfz9AMUo38JsyLSBWSFcHR1Rri62LZc12vLr1gb3jl7iwQhgwpAbGQ=="

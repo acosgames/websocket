@@ -12,6 +12,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "acos-json-delta": "^1.0.4",
+    "acos-json-encoder": "^1.0.2",
     "axios": "^0.21.1",
     "bad-words": "^3.0.4",
     "bson": "^4.2.3",
@@ -20,9 +22,9 @@
     "pson": "^2.0.0",
     "re2": "^1.17.7",
     "shared": "file:../shared",
-    "uWebSockets.js": "uNetworking/uWebSockets.js#v20.15.0",
     "url-regex-safe": "^3.0.0",
     "uuid": "^8.3.2",
+    "uWebSockets.js": "uNetworking/uWebSockets.js#v20.15.0",
     "websocket": "^1.0.33"
   }
 }

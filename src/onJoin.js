@@ -1,5 +1,5 @@
 const storage = require('./storage');
-const { encode } = require('shared/util/encoder');
+const { encode } = require('acos-json-encoder');
 const rabbitmq = require('shared/services/rabbitmq');
 const r = require('shared/services/room');
 
