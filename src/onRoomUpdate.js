@@ -59,6 +59,7 @@ class RoomUpdate {
                         continue;
 
                     ws.send(encoded, true, false);
+                    console.log("Added to queue: ", player, msg);
                 }
             }
 
@@ -74,9 +75,14 @@ class RoomUpdate {
                         continue;
 
                     ws.send(encoded, true, false);
+                    console.log("Added to queue: ", player, msg);
                 }
             }
 
+        }
+        else if (msg.type == 'queueStats') {
+            let app = storage.getWSApp();
+            app.publish('acos', encode(msg), true, false);
         }
 
 
