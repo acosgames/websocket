@@ -157,6 +157,8 @@ class JoinAction {
             let gameinfo = await storage.getGameInfo(queue.game_slug);
             let min = gameinfo.minplayers;
             let max = gameinfo.maxplayers;
+            queue.preview_image = gameinfo.preview_images;
+            queue.name = gameinfo.name;
 
             if (players.length > min) {
                 continue;
