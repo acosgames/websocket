@@ -44,9 +44,11 @@ class Authentication {
                     }
                     else if (user.email) {
                         loggedIn = 'USER';
+                        user = await persons.findUser(user);
                     }
                     else if (user.displayname) {
                         loggedIn = 'TEMP';
+                        user = await persons.findUser(user);
                     }
 
                 }
