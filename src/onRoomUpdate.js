@@ -22,20 +22,20 @@ class RoomUpdate {
             return;
         }
 
-        let qWS = await mq.findExistingQueue('ws');;
-        await mq.subscribeQueue(qWS, this.onRoomUpdate.bind(this));
-
         setTimeout(async () => {
+            let qWS = await mq.findExistingQueue('ws');;
+            await mq.subscribeQueue(qWS, this.onRoomUpdate.bind(this));
+
             let queueKey = await mq.subscribe('ws', 'onRoomUpdate', this.onRoomUpdate.bind(this), qWS);
-        }, 3000)
+        }, 5000)
 
-
-        let qWS2 = await mq.findExistingQueue('queue');
-        await mq.subscribeQueue(qWS2, this.onQueueUpdate.bind(this));
 
         setTimeout(async () => {
+            let qWS2 = await mq.findExistingQueue('queue');
+            await mq.subscribeQueue(qWS2, this.onQueueUpdate.bind(this));
+
             let queueKey = await mq.subscribe('ws', 'onQueueUpdate', this.onQueueUpdate.bind(this), qWS2);
-        }, 3000)
+        }, 5000)
 
         //mq.subscribe('ws', 'onJoinResponse', JoinAction.onJoinResponse.bind(JoinAction));
     }

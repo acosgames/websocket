@@ -146,7 +146,7 @@ class JoinAction {
 
             players = team.players;
         } else {
-            players = [{ shortid: captain, displayname: ws.user.displayname }];
+            players = [{ shortid: captain, displayname: ws.user.displayname, portraitid: ws.user.portraitid || 1, countrycode: ws.user.countrycode || 'US' }];
         }
         return players;
     }

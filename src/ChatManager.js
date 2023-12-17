@@ -27,12 +27,12 @@ class ChatManager {
             return;
         }
 
-        let qWS = await mq.findExistingQueue('chat');
-        await mq.subscribeQueue(qWS, this.onChatReceive.bind(this));
-
         setTimeout(async () => {
+            let qWS = await mq.findExistingQueue('chat');
+            await mq.subscribeQueue(qWS, this.onChatReceive.bind(this));
+
             let queueKey = await mq.subscribe('chat', 'chat', this.onChatReceive.bind(this), qWS);
-        }, 3000)
+        }, 5000)
 
         // this.queueKey = await mq.subscribe('ws', 'chat', this.onChat.bind(this), qWS);
     }
