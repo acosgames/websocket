@@ -118,7 +118,9 @@ class RoomUpdate {
             if (action && 'room_slug' in action)
                 delete action.room_slug;
 
-            msg.payload.action = action;
+            // msg.payload.action = action;
+            if (msg.payload.action)
+                delete msg.payload.action;
 
             previousGamestate.action = null;
             previousGamestate.events = null;
