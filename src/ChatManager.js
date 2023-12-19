@@ -85,17 +85,19 @@ class ChatManager {
         let message = (action.payload.message);
         message = message.substring(0, 120);
         let icon = undefined;
+        let portraitid = ws.user.portraitid;
+        let countrycode = ws.user.countrycode;
 
-        let payload = { displayname, room_slug, message, timestamp: (new Date).getTime(), };
+        let payload = { displayname, portraitid, countrycode, room_slug, message, timestamp: (new Date).getTime(), };
 
-        if (game_slug) {
-            let game = await storage.getGameInfo(game_slug);
-            if (game) {
-                icon = game.preview_images;
-                payload.game_slug = game_slug;
-                payload.icon = icon;
-            }
-        }
+        // if (game_slug) {
+        //     let game = await storage.getGameInfo(game_slug);
+        //     if (game) {
+        //         icon = game.preview_images;
+        //         payload.game_slug = game_slug;
+        //         payload.icon = icon;
+        //     }
+        // }
 
 
         let response = { type: 'chat', payload }
