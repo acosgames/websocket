@@ -243,7 +243,7 @@ class JoinAction {
         console.log("User " + ws.user.shortid + " has " + rooms.length + " rooms.");
         for (var i = 0; i < rooms.length; i++) {
             let roomState = await storage.getRoomState(rooms[i].room_slug, ws.user.shortid);
-            if (!roomState) {
+            if (!roomState || roomState?.events?.gameover) {
                 storage.cleanupRoom(rooms[i].room_slug);
                 continue;
             }

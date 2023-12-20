@@ -103,8 +103,8 @@ class RoomUpdate {
             }
 
             let action = msg.payload.action;
-            if (action?.user)
-                action.user = action.user.id;
+            // if (action?.user)
+            //     action.user = action.user.id;
 
             if (action?.user?.id)
                 action.user = action.user.id;
@@ -125,6 +125,9 @@ class RoomUpdate {
             previousGamestate.action = null;
             previousGamestate.events = null;
 
+
+
+
             // console.log("Previous: ", previousGamestate.players);
             let gamestate = delta.merge(previousGamestate, msg.payload);
             if (!gamestate) {
@@ -142,6 +145,8 @@ class RoomUpdate {
             let hiddenPlayers = delta.hidden(copy.payload.players);
 
 
+
+            let isGameover = copy.type == 'gameover' || (gamestate.events && gamestate.events.gameover);
 
 
             storage.setRoomState(room_slug, gamestate);
@@ -191,16 +196,7 @@ class RoomUpdate {
                 }
 
 
-            let isGameover = copy.type == 'gameover' || (gamestate.events && gamestate.events.gameover);
-            if (copy.type == 'noshow' || copy.type == 'error' || isGameover || playerList.length == 0) {
-                // if (isGameover)
-                //     this.updatePlayerRatings(copy);
 
-                setTimeout(() => {
-                    this.killGameRoom(copy);
-                }, 1)
-                //return true;
-            }
 
             // if (copy.payload.kick) {
             //     this.kickPlayers(copy);
@@ -211,6 +207,17 @@ class RoomUpdate {
             let encoded = encode(copy);
             // console.log("Publishing [" + room_slug + "] with " + encoded.byteLength + ' bytes', JSON.stringify(copy, null, 2));
             app.publish(room_slug, encoded, true, false)
+
+            if (copy.type == 'error') {
+                if (copy?.action?.type == 'join') {
+                    for (let shortid in copy.payload.players) {
+                        let ws = await storage.getUser(shortid);
+                        if (ws)
+                            ws.send(encoded, true, false);
+                    }
+                }
+                this.killGameRoom({ room_slug });
+            }
             // }, 200)
 
             profiler.EndTime('ActionUpdateLoop');
