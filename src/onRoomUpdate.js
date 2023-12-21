@@ -81,6 +81,7 @@ class RoomUpdate {
 
         }
         else if (msg.type == 'queueStats') {
+            storage.setQueueStats(msg);
             let app = storage.getWSApp();
             app.publish('acos', encode(msg), true, false);
         }

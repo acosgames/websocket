@@ -130,6 +130,12 @@ class WSNode {
                 let response = { type: 'inrooms', payload: activeRooms }
                 ws.send(encode(response), true, false);
             }
+
+            let queueStats = storage.getQueueStats();
+            if (queueStats && Object.keys(queueStats).length > 1) {
+                // let response = { type: 'queueStats', payload: activeRooms }
+                ws.send(encode(queueStats), true, false);
+            }
         }
 
         ChatManager.watchChat(ws);

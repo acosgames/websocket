@@ -10,6 +10,7 @@ class Storage {
         this.userCount = 0;
         this.app = null;
 
+        this.queueStats = null;
     }
 
     setWSApp(app) {
@@ -22,6 +23,14 @@ class Storage {
 
     getPlayerCount() {
         return this.userCount || 0;
+    }
+
+    setQueueStats(queueStats) {
+        this.queueStats = queueStats;
+    }
+
+    getQueueStats() {
+        return this.queueStats;
     }
 
 
