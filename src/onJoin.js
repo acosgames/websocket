@@ -84,7 +84,7 @@ class JoinAction {
             let owner = action?.payload?.owner;
             let players = null;
             if (teamid) {
-                let team = await storage.getTeam(teamid);
+                let team = await storage.getParty(teamid);
 
                 if (captain != team.captain) {
                     return null;
@@ -238,7 +238,7 @@ class JoinAction {
             let owner = action?.payload?.owner;
             let players = null;
             if (teamid) {
-                let team = await storage.getTeam(teamid);
+                let team = await storage.getParty(teamid);
 
                 if (captain != team.captain) {
                     return null;

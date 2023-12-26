@@ -34,13 +34,13 @@ class Storage {
     }
 
 
-    async setTeam(teamid, teaminfo) {
-        cache.set('team/' + teamid, teaminfo, 120);
+    async setParty(teamid, partyinfo) {
+        cache.set('team/' + teamid, partyinfo, 120);
     }
 
-    async getTeam(teamid) {
-        let teaminfo = await cache.get('team/' + teamid);
-        return teaminfo;
+    async getParty(teamid) {
+        let partyinfo = await cache.get('team/' + teamid);
+        return partyinfo;
     }
 
     async deleteTeam(teamid) {

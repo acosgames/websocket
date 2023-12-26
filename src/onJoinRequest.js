@@ -134,11 +134,11 @@ class JoinAction {
         return null;
     }
 
-    async generateQueuePlayers(ws, teamid) {
+    async generateQueuePlayers(ws, partyid) {
         let captain = ws?.user?.shortid;
         let players = null;
-        if (teamid) {
-            let team = await storage.getTeam(teamid);
+        if (partyid) {
+            let team = await storage.getParty(partyid);
 
             if (captain != team.captain) {
                 return null;

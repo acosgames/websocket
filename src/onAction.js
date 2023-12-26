@@ -202,8 +202,8 @@ class Action {
 
             //multiple teams can send actions if in the array
             for (var i = 0; i < nextid.length; i++) {
-                let teamid = nextid[i];
-                if (Array.isArray(teams[teamid].players) && teams[teamid].players.includes(userid)) {
+                let team_slug = nextid[i];
+                if (Array.isArray(teams[team_slug].players) && teams[team_slug].players.includes(userid)) {
                     return true;
                 }
             }
