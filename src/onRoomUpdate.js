@@ -37,7 +37,37 @@ class RoomUpdate {
             let queueKey = await mq.subscribe('ws', 'onQueueUpdate', this.onQueueUpdate.bind(this), qWS2);
         }, 5000)
 
+        setTimeout(async () => {
+            let qWS2 = await mq.findExistingQueue('stats');
+            await mq.subscribeQueue(qWS2, this.onStatsUpdate.bind(this));
+
+            let queueKey = await mq.subscribe('ws', 'onStatsUpdate', this.onStatsUpdate.bind(this), qWS2);
+        }, 5000)
+
         //mq.subscribe('ws', 'onJoinResponse', JoinAction.onJoinResponse.bind(JoinAction));
+    }
+
+    async onStatsUpdate(msg) {
+
+        //send player their latest win/loss/tie career stats and new rating
+        if (msg.type == 'rankings') {
+            let players = msg.payload;
+            for (var shortid in players) {
+
+                let ws = await storage.getUser(shortid);
+                if (!ws)
+                    continue;
+
+                let privateMsg = {
+                    type: 'rankings',
+                    payload: players[shortid]
+                }
+                let encodedPrivate = encode(privateMsg);
+                // console.log("Publishing Private [" + room_slug + "] with " + encodedPrivate.byteLength + ' bytes', JSON.stringify(privateMsg, null, 2));
+
+                ws.send(encodedPrivate, true, false);
+            }
+        }
     }
 
     async onQueueUpdate(msg) {
@@ -288,7 +318,9 @@ class RoomUpdate {
             return;
         }
 
-        storage.cleanupRoom(msg.room_slug);
+        let meta = await storage.getRoomMeta(msg.room_slug);
+
+        storage.cleanupRoom(meta);
     }
 
     // async processTimelimit(next) {

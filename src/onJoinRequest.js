@@ -52,7 +52,8 @@ class JoinAction {
             console.error("[onJoined] Missing roomState for join response: ", id, room_slug);
             this.sendResponse(ws, 'notexist', room_slug);
             //await r.removePlayerRoom(ws.user.shortid, room_slug);
-            storage.cleanupRoom(room_slug);
+            let meta = await storage.getRoomMeta(room_slug);
+            storage.cleanupRoom(meta);
             return false;
         }
     }
@@ -244,7 +245,7 @@ class JoinAction {
         for (var i = 0; i < rooms.length; i++) {
             let roomState = await storage.getRoomState(rooms[i].room_slug, ws.user.shortid);
             if (!roomState || roomState?.events?.gameover) {
-                storage.cleanupRoom(rooms[i].room_slug);
+                storage.cleanupRoom(rooms[i]);
                 continue;
             }
 
