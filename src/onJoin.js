@@ -158,10 +158,10 @@ class JoinAction {
 
         this.onLeaveQueue(ws);
 
-        await this.sendJoinRequest(game_slug, room_slug, actions, shortid)
+        await this.sendJoinRequest(game_slug, room_slug, room.room_id, actions, shortid)
     }
 
-    async sendJoinRequest(game_slug, room_slug, actions, shortid) {
+    async sendJoinRequest(game_slug, room_slug, room_id, actions, shortid) {
         try {
             //tell our game server to load the game, if one doesn't exist already
             // let msg = {
@@ -172,7 +172,7 @@ class JoinAction {
             await rabbitmq.publishQueue('loadGame', { game_slug, room_slug, actions });
 
             console.log("Assign: ", shortid, room_slug);
-            await r.assignPlayerRoom(shortid, room_slug, game_slug);
+            await r.assignPlayerRoom(shortid, room_id, game_slug);
         }
         catch (e) {
             console.error(e);
