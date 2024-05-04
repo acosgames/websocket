@@ -195,7 +195,7 @@ class JoinAction {
 
         let actions = [msg];
 
-        this.onLeaveQueue(ws);
+        // this.onLeaveQueue(ws);
         await this.sendCreateGameRequest(game_slug, room_slug, room.room_id, actions, shortid)
     }
 
@@ -251,8 +251,8 @@ class JoinAction {
 
             ws.subscribe(rooms[i].room_slug);
 
-            rooms[i].gamestate = roomState;
-            activeRooms.push(rooms[i]);
+            // rooms[i].gamestate = roomState;
+            activeRooms.push({ gamestate: roomState, room: rooms[i] });
         }
 
         if (activeRooms.length == 0)
