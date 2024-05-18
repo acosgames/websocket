@@ -1,39 +1,35 @@
-const storage = require('./storage');
-const { encode } = require('acos-json-encoder');
-const rabbitmq = require('shared/services/rabbitmq');
-const r = require('shared/services/room');
+const storage = require("./storage");
+const { encode } = require("acos-json-encoder");
+const rabbitmq = require("shared/services/rabbitmq");
+const r = require("shared/services/room");
 
 function cloneObj(obj) {
-    if (typeof obj === 'object')
-        return JSON.parse(JSON.stringify(obj));
+    if (typeof obj === "object") return JSON.parse(JSON.stringify(obj));
     return obj;
 }
 
 class JoinAction {
-
     async onJoinRoom(ws, action) {
         let room_slug = action.payload.room_slug;
-        if (!room_slug)
-            return null;
-
+        if (!room_slug) return null;
 
         let roomState = await storage.getRoomState(room_slug);
         if (!roomState) {
             storage.cleanupRoom(room_slug);
-            this.sendResponse(ws, 'notexist', room_slug);
+            this.sendResponse(ws, "notexist", room_slug);
             return null;
         }
 
         if (roomState?.events?.gameover) {
             storage.cleanupRoom(room_slug);
-            this.sendResponse(ws, 'notexist', room_slug);
+            this.sendResponse(ws, "notexist", room_slug);
             return null;
         }
 
         let roomMeta = await storage.getRoomMeta(room_slug);
         if (!roomMeta) {
             storage.cleanupRoom(room_slug);
-            this.sendResponse(ws, 'notexist', room_slug);
+            this.sendResponse(ws, "notexist", room_slug);
             return null;
         }
 
@@ -41,11 +37,11 @@ class JoinAction {
         if (!inRoom) {
             let isFull = await this.checkIsRoomFull(room_slug);
             if (isFull) {
-                this.sendResponse(ws, 'full', room_slug);
+                this.sendResponse(ws, "full", room_slug);
                 return null;
             }
 
-            //track user who is pending a join 
+            //track user who is pending a join
             // let key = ws.user.shortid + roomMeta.game_slug + roomMeta.mode;
             // this.pendingJoin(ws, key);
 
@@ -54,30 +50,23 @@ class JoinAction {
 
         let success = this.subscribeToRoom(ws, room_slug);
         if (!success) {
-
         }
         return null;
     }
 
     async onJoinQueues(ws, action) {
-
         var playerCount = storage.getPlayerCount();
 
         if (ws && ws.user && ws.user.shortid) {
-            if (await this.checkInRoom(ws, action))
-                return null;
-        }
-        else {
+            if (await this.checkInRoom(ws, action)) return null;
+        } else {
             console.error("ws failed: ", ws);
             return null;
         }
 
-
-        if (!ws.loggedIn == 'LURKER')
-            return null;
+        if (!ws.loggedIn == "LURKER") return null;
 
         try {
-
             let captain = ws.user.shortid;
             let teamid = action?.payload?.teamid;
             let queues = action?.payload?.queues;
@@ -92,7 +81,9 @@ class JoinAction {
 
                 players = team.players;
             } else {
-                players = [{ shortid: captain, displayname: ws.user.displayname }];
+                players = [
+                    { shortid: captain, displayname: ws.user.displayname },
+                ];
             }
 
             let approvedQueues = [];
@@ -108,18 +99,21 @@ class JoinAction {
                 }
 
                 if (max == 1) {
-                    await this.createGameAndJoinSinglePlayer(ws, queue)
+                    await this.createGameAndJoinSinglePlayer(ws, queue);
                     return null;
                 }
 
                 approvedQueues.push(queue);
-
             }
 
-
-
-            let msg = { captain, teamid, players, queues: approvedQueues, owner }
-            await rabbitmq.publishQueue('joinQueue', msg);
+            let msg = {
+                captain,
+                teamid,
+                players,
+                queues: approvedQueues,
+                owner,
+            };
+            await rabbitmq.publishQueue("joinQueue", msg);
 
             // this.pendingJoin(ws, game_slug + mode);
 
@@ -128,17 +122,14 @@ class JoinAction {
             // let response = { type: 'queue', queues, playerCount }
             // // console.log("onJoinGame 2");
             // ws.send(encode(response), true, false);
-        }
-        catch (e) {
+        } catch (e) {
             console.error(e);
         }
 
         return null;
     }
 
-
     async createGameAndJoinSinglePlayer(ws, queue) {
-
         let shortid = ws.user.shortid;
         let displayname = ws.user.displayname;
         let game_slug = queue.game_slug;
@@ -149,16 +140,22 @@ class JoinAction {
         let room_slug = room.room_slug;
 
         let msg = {
-            type: 'join',
-            user: { id: shortid, displayname },
-            room_slug
-        }
+            type: "join",
+            user: { shortid: shortid, displayname },
+            room_slug,
+        };
 
         let actions = [msg];
 
         this.onLeaveQueue(ws);
 
-        await this.sendJoinRequest(game_slug, room_slug, room.room_id, actions, shortid)
+        await this.sendJoinRequest(
+            game_slug,
+            room_slug,
+            room.room_id,
+            actions,
+            shortid
+        );
     }
 
     async sendJoinRequest(game_slug, room_slug, room_id, actions, shortid) {
@@ -169,27 +166,33 @@ class JoinAction {
             //     room_slug
             // }
             // let key = game_slug + '/' + room_slug;
-            await rabbitmq.publishQueue('loadGame', { game_slug, room_slug, actions });
+            await rabbitmq.publishQueue("loadGame", {
+                game_slug,
+                room_slug,
+                actions,
+            });
 
             console.log("Assign: ", shortid, room_slug);
             await r.assignPlayerRoom(shortid, room_id, game_slug);
-        }
-        catch (e) {
+        } catch (e) {
             console.error(e);
         }
     }
 
-
     async checkInRoom(ws) {
         let rooms = await storage.getPlayerRooms(ws.user.shortid);
-        if (!rooms || rooms.length == 0)
-            return false;
+        if (!rooms || rooms.length == 0) return false;
 
         let activeRooms = [];
 
-        console.log("User " + ws.user.shortid + " has " + rooms.length + " rooms.");
+        console.log(
+            "User " + ws.user.shortid + " has " + rooms.length + " rooms."
+        );
         for (var i = 0; i < rooms.length; i++) {
-            let roomState = await storage.getRoomState(rooms[i].room_slug, ws.user.shortid);
+            let roomState = await storage.getRoomState(
+                rooms[i].room_slug,
+                ws.user.shortid
+            );
             if (!roomState) {
                 storage.cleanupRoom(rooms[i].room_slug);
                 continue;
@@ -201,35 +204,29 @@ class JoinAction {
         }
 
         var playerCount = storage.getPlayerCount();
-        let response = { type: 'inrooms', payload: activeRooms, playerCount }
+        let response = { type: "inrooms", payload: activeRooms, playerCount };
         // console.log("onJoinGame 1");
         ws.send(encode(response), true, false);
-
 
         return true;
     }
 
     async onJoinGame(ws, action) {
-
         var playerCount = storage.getPlayerCount();
 
         if (ws && ws.user && ws.user.shortid) {
-            if (await this.checkInRoom(ws, action))
-                return null;
-        }
-        else {
+            if (await this.checkInRoom(ws, action)) return null;
+        } else {
             console.error("ws failed: ", ws);
             return null;
         }
 
-        if (!ws.user || !ws.user.shortid || !ws.user.displayname)
-            return null;
+        if (!ws.user || !ws.user.shortid || !ws.user.displayname) return null;
 
-        let mode = action.payload.mode || 'rank';
-        if (mode != 'experimental' && mode != 'rank') {
-            mode = 'rank'
+        let mode = action.payload.mode || "rank";
+        if (mode != "experimental" && mode != "rank") {
+            mode = "rank";
         }
-
 
         try {
             let captain = ws.user.shortid;
@@ -246,7 +243,9 @@ class JoinAction {
 
                 players = team.players;
             } else {
-                players = [{ shortid: captain, displayname: ws.user.displayname }];
+                players = [
+                    { shortid: captain, displayname: ws.user.displayname },
+                ];
             }
 
             let approvedQueues = [];
@@ -262,26 +261,29 @@ class JoinAction {
                 }
 
                 if (max == 1) {
-                    await this.createGameAndJoinSinglePlayer(ws, queue)
+                    await this.createGameAndJoinSinglePlayer(ws, queue);
                     return null;
                 }
 
                 approvedQueues.push(queue);
             }
 
-            let msg = { captain, teamid, players, queues: approvedQueues, owner }
-            await rabbitmq.publishQueue('joinQueue', msg);
-        }
-        catch (e) {
+            let msg = {
+                captain,
+                teamid,
+                players,
+                queues: approvedQueues,
+                owner,
+            };
+            await rabbitmq.publishQueue("joinQueue", msg);
+        } catch (e) {
             console.error(e);
         }
 
         return null;
     }
 
-
     async onPreJoinRoom(ws, action, room) {
-
         let room_slug = room.room_slug;
         let inRoom = await this.checkIsInRoom(ws, room_slug);
         if (inRoom) {
@@ -289,13 +291,11 @@ class JoinAction {
             return null;
         }
 
-
-
         //these are used by the gameserver to add the user to specific room
-        action.user.name = ws.user.displayname
+        action.user.displayname = ws.user.displayname;
 
         if (!room) {
-            let response = { type: 'retry', payload: { type: action.type } }
+            let response = { type: "retry", payload: { type: action.type } };
             console.log("onPreJoinRoom 1");
             ws.send(encode(response), true, false);
             return null;
@@ -303,7 +303,12 @@ class JoinAction {
 
         ws.subscribe(room.room_slug);
         setTimeout(() => {
-            let response = { type: 'joining', room_slug: room.room_slug, mode: room.mode, payload: {} }
+            let response = {
+                type: "joining",
+                room_slug: room.room_slug,
+                mode: room.mode,
+                payload: {},
+            };
             console.log("onPreJoinRoom 1");
             ws.send(encode(response), true, false);
         }, 0);
@@ -315,62 +320,60 @@ class JoinAction {
     async onJoinResponse(room_slug, gamestate) {
         try {
             if (gamestate && gamestate.events && gamestate.events.join) {
-
                 let ids = gamestate.events.join;
-                for (const id of ids) {
-                    let ws = await storage.getUser(id);
+                for (const shortid of ids) {
+                    let ws = await storage.getUser(shortid);
 
                     let roomMeta = await storage.getRoomMeta(room_slug);
-                    if (!roomMeta)
-                        return false;
+                    if (!roomMeta) return false;
 
                     if (!ws) {
-                        console.error("[onJoinResponse] missing websocket for: ", id);
+                        console.error(
+                            "[onJoinResponse] missing websocket for: ",
+                            shortid
+                        );
                         return false;
                     }
-
 
                     await this.onJoined(ws, room_slug);
                 }
             }
 
             return true;
-        }
-        catch (e) {
+        } catch (e) {
             console.error(e);
             return false;
         }
     }
 
     async onLeaveQueue(ws) {
-
-
         try {
             let msg = {
                 user: {
-                    shortid: ws.user.shortid
-                }
-            }
+                    shortid: ws.user.shortid,
+                },
+            };
 
-            await rabbitmq.publishQueue('leaveQueue', msg);
+            await rabbitmq.publishQueue("leaveQueue", msg);
 
             //tell user they have joined the queue
             // let response = { type: 'leavequeue' }
             // if (ws && ws)
             //     ws.send(encode(response), true, false);
-        }
-        catch (e) {
+        } catch (e) {
             console.error(e);
         }
 
         return null;
     }
     async onJoined(ws, room_slug, roomState) {
-        let id = ws.user.shortid;
+        let shortid = ws.user.shortid;
 
-        // console.log("[onJoined] Subscribing and Sending to client.", id, room_slug);
+        // console.log("[onJoined] Subscribing and Sending to client.", shortid, room_slug);
 
-        roomState = roomState || await storage.getRoomState(room_slug, ws.user.shortid);
+        roomState =
+            roomState ||
+            (await storage.getRoomState(room_slug, ws.user.shortid));
 
         if (roomState) {
             ws.subscribe(room_slug);
@@ -384,30 +387,33 @@ class JoinAction {
             // let game = await storage.getGameInfo(game_slug);
 
             let msg = {
-                type: 'joined',
+                type: "joined",
                 payload: roomState,
                 room,
             };
 
-            // console.log('[onJoined] Sending message: ', msg.payload); 
+            // console.log('[onJoined] Sending message: ', msg.payload);
             let encoded = encode(msg);
             console.log("onJoined 1");
             ws.send(encoded, true, false);
             return true;
         } else {
-            console.error("[onJoined] Missing roomState for join response: ", id, room_slug);
-            this.sendResponse(ws, 'notexist', room_slug);
+            console.error(
+                "[onJoined] Missing roomState for join response: ",
+                shortid,
+                room_slug
+            );
+            this.sendResponse(ws, "notexist", room_slug);
             //await r.removePlayerRoom(ws.user.shortid, room_slug);
             storage.cleanupRoom(room_slug);
             return false;
         }
     }
 
-
     sendResponse(ws, type, room_slug) {
         let msg = {
             type,
-            room_slug
+            room_slug,
         };
         let encoded = encode(msg);
         console.log("sendResponse ", type, room_slug);
@@ -415,25 +421,25 @@ class JoinAction {
     }
 
     async checkIsRoomFull(room_slug) {
-        if (!room_slug)
-            return true;
+        if (!room_slug) return true;
 
         let result = await storage.getRoomCounts(room_slug);
-        if (!result)
-            return true;
+        if (!result) return true;
 
-        if (result.count >= result.max)
-            return true;
+        if (result.count >= result.max) return true;
 
         return false;
     }
 
     async checkIsInRoom(ws, room_slug) {
-        if (!room_slug)
-            return false;
+        if (!room_slug) return false;
         // let room = await storage.getRoomMeta(room_slug);
         let roomState = await storage.getRoomState(room_slug);
-        if (!roomState || !roomState.players || !roomState.players[ws.user.shortid]) {
+        if (
+            !roomState ||
+            !roomState.players ||
+            !roomState.players[ws.user.shortid]
+        ) {
             return false;
         }
 
@@ -442,8 +448,9 @@ class JoinAction {
     }
 
     async subscribeToRoom(ws, room_slug, roomState) {
-
-        roomState = roomState || await storage.getRoomState(room_slug, ws.user.shortid);
+        roomState =
+            roomState ||
+            (await storage.getRoomState(room_slug, ws.user.shortid));
 
         if (roomState) {
             console.log("Subscribing user: ", ws.user.shortid, room_slug);
@@ -454,21 +461,19 @@ class JoinAction {
             //}, 0);
             return true;
         } else {
-            console.error("Room state does not exist.", ws.user.shortid, room_slug)
+            console.error(
+                "Room state does not exist.",
+                ws.user.shortid,
+                room_slug
+            );
             return false;
         }
     }
 
     async pendingJoin(ws, key) {
-        if (!ws.pending)
-            ws.pending = {};
+        if (!ws.pending) ws.pending = {};
         ws.pending[key] = true;
     }
-
-
-
 }
 
 module.exports = new JoinAction();
-
-
