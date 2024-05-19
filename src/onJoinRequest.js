@@ -11,7 +11,7 @@ class JoinAction {
 
             let ids = gamestate.events.join;
             for (const shortid of ids) {
-                let ws = await storage.getUser(shortid);
+                let ws = storage.getUser(shortid);
                 if (!ws) {
                     console.error(
                         "[onJoinResponse] missing websocket for: ",
@@ -274,7 +274,12 @@ class JoinAction {
                 rooms[i].room_slug,
                 ws.user.shortid
             );
-            if (!roomState || roomState?.events?.gameover) {
+            if (
+                !roomState ||
+                roomState?.events?.gameover ||
+                roomState?.events?.gamecancelled ||
+                roomState?.events?.gameerror
+            ) {
                 storage.cleanupRoom(rooms[i]);
                 continue;
             }

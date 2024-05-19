@@ -20,7 +20,11 @@ class JoinAction {
             return null;
         }
 
-        if (roomState?.events?.gameover) {
+        if (
+            roomState?.events?.gameover ||
+            roomState?.events?.gamecancelled ||
+            roomState?.events?.gameerror
+        ) {
             storage.cleanupRoom(room_slug);
             this.sendResponse(ws, "notexist", room_slug);
             return null;

@@ -45,6 +45,8 @@ class Action {
         this.actions["type"] = onSkip;
         this.actions["gamestart"] = onSkip;
         this.actions["gameover"] = onSkip;
+        this.actions["gamecancelled"] = onSkip;
+        this.actions["gameerror"] = onSkip;
     }
 
     async onClientAction(ws, message, isBinary) {
@@ -103,7 +105,12 @@ class Action {
         let roomState = await storage.getRoomState(action.room_slug);
         if (!roomState) return;
 
-        if (roomState?.events?.gameover) return;
+        if (
+            roomState?.events?.gameover ||
+            roomState?.events?.gamecancelled ||
+            roomState?.events?.gameerror
+        )
+            return;
 
         let requestAction = this.actions[action.type];
         if (requestAction) action = await requestAction(ws, action);

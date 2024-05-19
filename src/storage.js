@@ -151,6 +151,7 @@ class Storage {
 
     async cleanupRoom(meta) {
         try {
+            if (!meta?.room_slug) return;
             let roomState = await this.getRoomState(meta.room_slug);
             let players = roomState?.players;
             if (players) {
@@ -163,7 +164,7 @@ class Storage {
                 cache.del(meta.room_slug),
                 cache.del(meta.room_slug + "/meta"),
                 cache.del(meta.room_slug + "/timer"),
-                cache.del(meta.room_slug + "/p"),
+                // cache.del(meta.room_slug + "/p"),
             ]);
 
             r.deleteRoom(meta.room_id);

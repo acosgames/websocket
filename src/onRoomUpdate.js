@@ -9,6 +9,8 @@ const JoinAction = require("./onJoinRequest");
 const profiler = require("shared/util/profiler");
 const delta = require("acos-json-delta");
 const r = require("shared/services/room");
+const PersonService = require("shared/services/person");
+const person = new PersonService();
 
 class RoomUpdate {
     constructor() {
@@ -131,8 +133,6 @@ class RoomUpdate {
             }
 
             let action = msg.payload.action;
-            // if (action?.user)
-            //     action.user = action.user.shortid;
 
             if (action?.user?.shortid) action.user = action.user.shortid;
 
@@ -165,38 +165,20 @@ class RoomUpdate {
             let hiddenPlayers = delta.hidden(copy.payload.players);
 
             let isGameover =
-                copy.type == "gameover" ||
-                (gamestate.events && gamestate.events.gameover);
+                gamestate?.events &&
+                (gamestate.events.gameover ||
+                    gamestate.events.gamecancelled ||
+                    gamestate.events.gameerror);
 
             storage.setRoomState(room_slug, gamestate);
 
-            //skip doing any work if our websocket server doesn't have any of the users.
-            // let usersFound = false;
-            // for (var shortid of playerList) {
-            //     let ws = await storage.getUser(shortid);
-            //     if (!ws) {
-            //         continue;
-            //     }
-            //     usersFound = true;
-            //     break;
-            // }
-
-            // if (!usersFound && msg.type != 'join') {
-            //     this.killGameRoom({ room_slug });
-            //     return true;
-            // }
-
             if (msg.type == "join") {
                 await JoinAction.onJoinResponse(room_slug, gamestate);
-            } else if (msg.type == "noshow") {
-                // copy.events.noshow = true;
-                // if (msg?.payload?.error)
-                //     copy.error = msg.payload.error;
             }
 
             if (hiddenPlayers)
                 for (var shortid in hiddenPlayers) {
-                    let ws = await storage.getUser(shortid);
+                    let ws = storage.getUser(shortid);
                     if (!ws) continue;
 
                     let privateMsg = {
@@ -209,6 +191,10 @@ class RoomUpdate {
 
                     ws.send(encodedPrivate, true, false);
                 }
+
+            if (msg.type == "gameover" && gamestate?.events?.gameover) {
+                this.processAllPlayerExperience(gamestate);
+            }
 
             // if (copy.payload.kick) {
             //     this.kickPlayers(copy);
@@ -223,7 +209,7 @@ class RoomUpdate {
             if (copy.type == "error") {
                 if (copy?.action?.type == "join") {
                     for (let shortid in copy.payload.players) {
-                        let ws = await storage.getUser(shortid);
+                        let ws = storage.getUser(shortid);
                         if (ws) ws.send(encoded, true, false);
                     }
                 }
@@ -240,53 +226,94 @@ class RoomUpdate {
         return false;
     }
 
-    // async kickPlayers(msg) {
-    //     let game = msg.payload;
-    //     let room_slug = msg.room_slug;
-    //     let players = game.kick;
-    //     for (var shortid = 0; i < players.length; shortid++) {
-    //         if (game.players && game.players[shortid])
-    //             delete game.players[shortid];
-    //     }
+    processAllPlayerExperience(gamestate) {
+        if (!gamestate?.players) return;
 
-    //     for (var shortid = 0; i < players.length; shortid++) {
-    //         let ws = await storage.getUser(shortid);
-    //         if (!ws)
-    //             continue;
+        for (let shortid in gamestate.players) {
+            this.processPlayerExperience(gamestate, shortid);
+        }
+    }
 
-    //         ws.unsubscribe(room_slug);
-    //         let response = { type: 'kicked', room_slug, payload: game }
-    //         let encoded = encode(response);
-    //         ws.send(encoded, true, false);
-    //     }
-    // }
+    processPlayerExperience(gamestate, shortid) {
+        let player = gamestate.players[shortid];
+        let ws = storage.getUser(shortid);
+        if (!ws) return;
 
-    // async updatePlayerRatings(msg) {
-    //     let game = msg.payload;
-    //     let room_slug = msg.room_slug;
-    //     if (!game || !game.players)
-    //         return;
-    //     let meta = await storage.getRoomMeta(room_slug);
+        let room = gamestate?.room;
+        let startTime = room?.starttime || 0;
+        let endTime = room?.endtime || startTime;
+        let playTime = (endTime - startTime) / 1000;
+        playTime = Math.ceil(playTime);
+        let bonusTime = playTime / 10;
 
-    //     let playerRatings = [];
-    //     for (var shortid in game.players) {
-    //         let ws = storage.getUser(shortid);
-    //         if (!ws)
-    //             continue;
+        let playerList = Object.keys(gamestate?.players);
+        let highestScore =
+            playerList.reduce((highest, sid) => {
+                let p = gamestate.players[sid];
+                if (p.score > highest) highest = p.score;
+                return highest;
+            }, 0) || 1;
+        let maxScoreXP = 5;
+        let highScorePct = player.score / highestScore;
+        let scoreXP = Math.ceil(highScorePct * maxScoreXP) * bonusTime;
 
-    //         let player = game.players[shortid];
-    //         let playerRating = {
-    //             mu: player.mu,
-    //             sigma: player.sigma,
-    //             rating: player.rating
-    //         };
-    //         playerRatings.push(playerRating)
-    //         r.setPlayerRating(shortid, meta.game_slug, playerRating);
+        let winXP = 0;
+        if (player.teamid && gamestate?.teams[player.teamid]?.rank == 1) {
+            winXP = 5 * bonusTime;
+        }
 
-    //         delete player.sigma;
-    //         delete player.mu;
-    //     }
-    // }
+        let experience = [];
+        experience.push({ type: "Match Complete", value: playTime });
+        experience.push({ type: "Score", value: scoreXP });
+        if (winXP > 0) experience.push({ type: "Win", value: winXP });
+
+        let totalXP = experience.reduce((total, xp) => {
+            total += xp.value;
+            return total;
+        }, 0);
+
+        let previousPoints = Math.trunc(
+            (ws.user.level - Math.trunc(ws.user.level)) * 1000
+        );
+        let previousLevel = Math.trunc(ws.user.level);
+        let newPoints = previousPoints + totalXP;
+        let newLevel = previousLevel;
+
+        let earnedLevels = Math.floor(newPoints / 1000);
+        if (earnedLevels > 0) {
+            newLevel += earnedLevels;
+            newPoints = newPoints % 1000;
+        }
+
+        let xpMessage = {
+            type: "xp",
+            room_slug: room?.room_slug || "",
+            payload: {
+                experience,
+                previousPoints,
+                previousLevel,
+                points: newPoints,
+                level: newLevel,
+            },
+        };
+
+        let user = {
+            shortid,
+            level: newLevel + newPoints / 1000,
+        };
+        this.updateUser(user);
+
+        let encodedMessage = encode(xpMessage);
+        ws.send(encodedMessage, true, false);
+    }
+
+    async updateUser(user) {
+        try {
+            await person.updateUser(user);
+        } catch (e) {
+            console.error(e);
+        }
+    }
 
     async killGameRoom(msg) {
         if (!msg.room_slug) {
@@ -298,15 +325,6 @@ class RoomUpdate {
 
         storage.cleanupRoom(meta);
     }
-
-    // async processTimelimit(next) {
-    //     let seconds = next.timelimit;
-    //     seconds = Math.min(60, Math.max(10, seconds));
-
-    //     let now = (new Date()).getTime();
-    //     let deadline = now + (seconds * 1000);
-    //     next.deadline = deadline;
-    // }
 }
 
 module.exports = new RoomUpdate();
