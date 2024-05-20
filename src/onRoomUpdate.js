@@ -255,11 +255,11 @@ class RoomUpdate {
             }, 0) || 1;
         let maxScoreXP = 5;
         let highScorePct = player.score / highestScore;
-        let scoreXP = Math.ceil(highScorePct * maxScoreXP) * bonusTime;
+        let scoreXP = Math.ceil(highScorePct * maxScoreXP * bonusTime);
 
         let winXP = 0;
         if (player.teamid && gamestate?.teams[player.teamid]?.rank == 1) {
-            winXP = 5 * bonusTime;
+            winXP = Math.ceil(5 * bonusTime);
         }
 
         let experience = [];
@@ -292,7 +292,7 @@ class RoomUpdate {
                 experience,
                 previousPoints,
                 previousLevel,
-                points: newPoints,
+                points: totalXP,
                 level: newLevel,
             },
         };
