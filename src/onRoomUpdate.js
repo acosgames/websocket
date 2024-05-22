@@ -66,13 +66,14 @@ class RoomUpdate {
         //send player their latest win/loss/tie career stats and new rating
         if (msg.type == "rankings") {
             let players = msg.payload;
-            for (var shortid in players) {
+            for (var player of players) {
+                let { shortid } = player;
                 let ws = await storage.getUser(shortid);
                 if (!ws) continue;
 
                 let privateMsg = {
                     type: "rankings",
-                    payload: players[shortid],
+                    payload: player,
                 };
                 let encodedPrivate = encode(privateMsg);
                 // console.log("Publishing Private [" + room_slug + "] with " + encodedPrivate.byteLength + ' bytes', JSON.stringify(privateMsg, null, 2));
