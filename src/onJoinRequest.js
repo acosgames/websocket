@@ -215,19 +215,12 @@ class JoinAction {
         await this.sendCreateGameRequest(
             game_slug,
             room_slug,
-            room.room_id,
             actions,
             shortid
         );
     }
 
-    async sendCreateGameRequest(
-        game_slug,
-        room_slug,
-        room_id,
-        actions,
-        shortid
-    ) {
+    async sendCreateGameRequest(game_slug, room_slug, actions, shortid) {
         try {
             //forward to gameserver
             await rabbitmq.publishQueue("loadGame", {
@@ -237,8 +230,8 @@ class JoinAction {
             });
 
             //save player room in database
-            console.log("Assign: ", shortid, room_id);
-            await r.assignPlayerRoom(shortid, room_id, game_slug);
+            console.log("Assign: ", shortid, room_slug);
+            await r.assignPlayerRoom(shortid, room_slug, game_slug);
         } catch (e) {
             console.error(e);
         }

@@ -167,7 +167,7 @@ class Storage {
                 // cache.del(meta.room_slug + "/p"),
             ]);
 
-            r.deleteRoom(meta.room_id);
+            r.deleteRoom(meta, roomState);
         } catch (e) {
             console.error(e);
         }
