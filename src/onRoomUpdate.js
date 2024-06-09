@@ -59,7 +59,41 @@ class RoomUpdate {
             );
         }, 5000);
 
+        setTimeout(async () => {
+            let qWS2 = await mq.findExistingQueue("achievements");
+            await mq.subscribeQueue(qWS2, this.onAchievementsUpdate.bind(this));
+
+            let queueKey = await mq.subscribe(
+                "ws",
+                "onAchievementsUpdate",
+                this.onAchievementsUpdate.bind(this),
+                qWS2
+            );
+        }, 5000);
+
         //mq.subscribe('ws', 'onJoinResponse', JoinAction.onJoinResponse.bind(JoinAction));
+    }
+
+    async onAchievementsUpdate(msg) {
+        //send player their latest win/loss/tie career stats and new rating
+        if (msg.type == "rankings") {
+            let players = msg.payload;
+            let shortids = Object.keys(players);
+            for (var shortid of shortids) {
+                let ws = await storage.getUser(shortid);
+                if (!ws) continue;
+
+                let privateMsg = {
+                    type: "achievements",
+                    game_slug: msg.game_slug,
+                    payload: players[shortid],
+                };
+                let encodedPrivate = encode(privateMsg);
+                // console.log("Publishing Private [" + room_slug + "] with " + encodedPrivate.byteLength + ' bytes', JSON.stringify(privateMsg, null, 2));
+
+                ws.send(encodedPrivate, true, false);
+            }
+        }
     }
 
     async onStatsUpdate(msg) {
