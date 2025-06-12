@@ -1,8 +1,8 @@
-const { v4: uuidv4 } = require('uuid');
-const cookie = require('cookie')
-const PersonService = require('shared/services/person');
-const persons = new PersonService();
-const credutil = require('shared/util/credentials');
+const { v4: uuidv4 } = require("uuid");
+const cookie = require("cookie");
+const persons = require("shared/services/person");
+// const persons = new PersonService();
+const credutil = require("shared/util/credentials");
 
 //use this class to implement a fancy authentication
 class Authentication {
@@ -23,36 +23,34 @@ class Authentication {
 
         let user = null;
         try {
+            let loggedIn = "LURKER";
 
-            let loggedIn = 'LURKER';
+            const _cookie = cookie.parse(req.getHeader("cookie"));
+            let key = req.getHeader("sec-websocket-key");
+            let jwtToken = req.getHeader("sec-websocket-protocol");
+            let ext = req.getHeader("sec-websocket-extensions");
 
-            const _cookie = cookie.parse(req.getHeader('cookie'))
-            let key = req.getHeader('sec-websocket-key');
-            let jwtToken = req.getHeader('sec-websocket-protocol');
-            let ext = req.getHeader('sec-websocket-extensions');
+            console.log("WS Cookie: ", req.getHeader("cookie"));
 
-            console.log("WS Cookie: ", req.getHeader('cookie'));
-
-            if (jwtToken == 'LURKER') {
-                user = { shortid: 'SPECTATOR', displayname: 'Spectator' }
-            }
-            else {
+            if (jwtToken == "LURKER") {
+                user = { shortid: "SPECTATOR", displayname: "Spectator" };
+            } else {
                 try {
                     user = await persons.decodeUserToken(jwtToken);
                     if (!user) {
-                        console.error("User attempted invalid JWT: ", user, jwtToken);
-                    }
-                    else if (user.email) {
-                        loggedIn = 'USER';
+                        console.error(
+                            "User attempted invalid JWT: ",
+                            user,
+                            jwtToken
+                        );
+                    } else if (user.email) {
+                        loggedIn = "USER";
+                        user = await persons.findUser(user);
+                    } else if (user.displayname) {
+                        loggedIn = "TEMP";
                         user = await persons.findUser(user);
                     }
-                    else if (user.displayname) {
-                        loggedIn = 'TEMP';
-                        user = await persons.findUser(user);
-                    }
-
-                }
-                catch (e) {
+                } catch (e) {
                     console.error("[Upgrade Error] for user:", user, jwtToken);
                     console.error(e);
 
@@ -62,17 +60,17 @@ class Authentication {
                 }
             }
 
-
             var pending = {};
             res.upgrade(
                 { loggedIn, user, pending },
-                key, jwtToken, ext,
+                key,
+                jwtToken,
+                ext,
                 context
-            )
+            );
 
             console.log("finished upgrade", _cookie);
-        }
-        catch (e) {
+        } catch (e) {
             console.error(e);
             if (!res.aborted) {
                 res.end();
@@ -91,23 +89,18 @@ class Authentication {
             user = await persons.findUser(user);
 
             return user;
-        }
-        catch (e) {
+        } catch (e) {
             console.error(e);
             // res.writeStatus('401')
         }
         return null;
     }
 
-
-
-
     generateAPIKey() {
-        return uuidv4().replace(/\-/ig, '');
+        return uuidv4().replace(/\-/gi, "");
     }
 
     checkLogin(request, response, next) {
-
         if (!request.session.user) {
             //do login flow
             let passed = this.loginUser(request, response);
@@ -116,12 +109,10 @@ class Authentication {
                 response.json({ error: "E_INVALID_AUTH" });
                 return;
             }
-        }
-        else {
+        } else {
             let user = request.session.user;
             this.users[user.apikey] = user;
         }
-
 
         next();
     }
@@ -146,11 +137,11 @@ class Authentication {
     }
 
     checkAPIKey(client, data) {
-        if (!('X-API-KEY' in data)) {
+        if (!("X-API-KEY" in data)) {
             return false;
         }
 
-        let apikey = data['X-API-KEY'];
+        let apikey = data["X-API-KEY"];
         if (!(apikey in this.users)) {
             return false;
         }
@@ -175,8 +166,7 @@ class Authentication {
         return client.user;
     }
     getUser(apikey) {
-        if (!(apikey in this.users))
-            return null;
+        if (!(apikey in this.users)) return null;
         return this.users[apikey];
     }
 }

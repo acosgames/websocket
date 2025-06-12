@@ -7,9 +7,9 @@ const room = require("shared/services/room");
 class JoinAction {
     async onJoinResponse(room_slug, gamestate) {
         try {
-            if (!gamestate?.events?.join) return false;
+            if (!gamestate?.room?.events?.join) return false;
 
-            let ids = gamestate.events.join;
+            let ids = gamestate.room?.events.join;
             for (const shortid of ids) {
                 let ws = storage.getUser(shortid);
                 if (!ws) {
@@ -269,9 +269,9 @@ class JoinAction {
             );
             if (
                 !roomState ||
-                roomState?.events?.gameover ||
-                roomState?.events?.gamecancelled ||
-                roomState?.events?.gameerror
+                roomState?.room?.events?.gameover ||
+                roomState?.room?.events?.gamecancelled ||
+                roomState?.room?.events?.gameerror
             ) {
                 storage.cleanupRoom(rooms[i]);
                 continue;

@@ -9,8 +9,8 @@ const JoinAction = require("./onJoinRequest");
 const profiler = require("shared/util/profiler");
 const delta = require("acos-json-delta");
 const r = require("shared/services/room");
-const PersonService = require("shared/services/person");
-const person = new PersonService();
+const person = require("shared/services/person");
+// const person = new PersonService();
 
 class RoomUpdate {
     constructor() {
@@ -181,7 +181,7 @@ class RoomUpdate {
             if (msg.payload.action) delete msg.payload.action;
 
             previousGamestate.action = null;
-            previousGamestate.events = null;
+            previousGamestate.room.events = null;
 
             // console.log("Previous: ", previousGamestate.players);
             let gamestate = delta.merge(previousGamestate, msg.payload);
@@ -200,10 +200,10 @@ class RoomUpdate {
             let hiddenPlayers = delta.hidden(copy.payload.players);
 
             let isGameover =
-                gamestate?.events &&
-                (gamestate.events.gameover ||
-                    gamestate.events.gamecancelled ||
-                    gamestate.events.gameerror);
+                gamestate?.room?.events &&
+                (gamestate.room?.events.gameover ||
+                    gamestate.room?.events.gamecancelled ||
+                    gamestate.room?.events.gameerror);
 
             storage.setRoomState(room_slug, gamestate);
 
@@ -227,7 +227,7 @@ class RoomUpdate {
                     ws.send(encodedPrivate, true, false);
                 }
 
-            if (msg.type == "gameover" && gamestate?.events?.gameover) {
+            if (msg.type == "gameover" && gamestate?.room?.events?.gameover) {
                 this.processAllPlayerExperience(gamestate);
             }
 

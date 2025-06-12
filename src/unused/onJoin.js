@@ -21,9 +21,9 @@ class JoinAction {
         }
 
         if (
-            roomState?.events?.gameover ||
-            roomState?.events?.gamecancelled ||
-            roomState?.events?.gameerror
+            roomState?.room?.events?.gameover ||
+            roomState?.room?.events?.gamecancelled ||
+            roomState?.room?.events?.gameerror
         ) {
             storage.cleanupRoom(room_slug);
             this.sendResponse(ws, "notexist", room_slug);
@@ -317,8 +317,12 @@ class JoinAction {
 
     async onJoinResponse(room_slug, gamestate) {
         try {
-            if (gamestate && gamestate.events && gamestate.events.join) {
-                let ids = gamestate.events.join;
+            if (
+                gamestate &&
+                gamestate.room?.events &&
+                gamestate.room?.events.join
+            ) {
+                let ids = gamestate.room?.events.join;
                 for (const shortid of ids) {
                     let ws = await storage.getUser(shortid);
 

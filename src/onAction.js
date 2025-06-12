@@ -106,9 +106,9 @@ class Action {
         if (!roomState) return;
 
         if (
-            roomState?.events?.gameover ||
-            roomState?.events?.gamecancelled ||
-            roomState?.events?.gameerror
+            roomState?.room?.events?.gameover ||
+            roomState?.room?.events?.gamecancelled ||
+            roomState?.room?.events?.gameerror
         )
             return;
 
@@ -140,29 +140,27 @@ class Action {
         //prevent users from sending actions if not their turn
         if (!roomState) return false;
 
-        let next = roomState?.next;
-        if (!next) return false;
-
         if (action.type == "ready") {
             action.payload = true; //force payload, incase someone tries to send something
             return true;
         }
 
+        let next_id = roomState?.room?.next_id;
+        if (!next_id) return false;
         let shortid = action.user.shortid;
-        let nextid = next?.id;
         let teams = roomState?.teams;
 
-        let passed = this.validateNextUser(shortid, nextid, teams);
+        let passed = this.validateNextUser(shortid, next_id, teams);
         if (passed) {
-            if (roomState?.timer?.sequence != action.timeseq) {
-                JoinAction.subscribeToRoom(ws, action.room_slug, roomState);
-                console.error(
-                    "User failed seq validation: ",
-                    roomState.timer,
-                    roomState.next
-                );
-                return false;
-            }
+            // if (roomState?.timer?.sequence != action.timeseq) {
+            //     JoinAction.subscribeToRoom(ws, action.room_slug, roomState);
+            //     console.error(
+            //         "User failed seq validation: ",
+            //         roomState.timer,
+            //         next_id
+            //     );
+            //     return false;
+            // }
             return true;
         }
 
