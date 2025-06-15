@@ -1,18 +1,21 @@
-const { encode, createDefaultDict } = require('acos-json-encoder');
-let ACOSDictionary = require('shared/model/acos-dictionary.json');
-createDefaultDict(ACOSDictionary)
+const { encode, createDefaultDict } = require("acos-json-encoder");
+let ACOSDictionary = require("shared/model/acos-dictionary.json");
+createDefaultDict(ACOSDictionary);
 
-const storage = require('./storage');
-const mq = require('shared/services/rabbitmq');
+const storage = require("./storage");
+const mq = require("shared/services/rabbitmq");
 
-var Filter = require('bad-words'),
+var Filter = require("bad-words"),
     filter = new Filter();
 
-const urlRegexSafe = require('url-regex-safe');
-const urlChecker = urlRegexSafe({ exact: true })
+const urlRegexSafe = require("url-regex-safe");
+const urlChecker = urlRegexSafe({ exact: true });
 const MAX_CHAT_HISTORY = 30;
 
-const regexURLCheck = new RegExp('([a-zA-Z\d]+://)?((\w+:\w+@)?([a-zA-Z\d.-]+\.[A-Za-z]{2,4})(:\d+)?(/.*)?)', 'i')
+const regexURLCheck = new RegExp(
+    "([a-zA-Zd]+://)?((w+:w+@)?([a-zA-Zd.-]+.[A-Za-z]{2,4})(:d+)?(/.*)?)",
+    "i"
+);
 class ChatManager {
     constructor() {
         // this.setup();
@@ -21,38 +24,36 @@ class ChatManager {
     }
 
     async start() {
-
         if (!mq.isActive()) {
             setTimeout(this.setup.bind(this), 2000);
             return;
         }
 
         setTimeout(async () => {
-            let qWS = await mq.findExistingQueue('chat');
+            let qWS = await mq.findExistingQueue("chat");
             await mq.subscribeQueue(qWS, this.onChatReceive.bind(this));
 
-            let queueKey = await mq.subscribe('chat', 'chat', this.onChatReceive.bind(this), qWS);
-        }, 5000)
+            let queueKey = await mq.subscribe("chat", "chat", this.onChatReceive.bind(this), qWS);
+        }, 5000);
 
         // this.queueKey = await mq.subscribe('ws', 'chat', this.onChat.bind(this), qWS);
     }
 
     watchChat(ws) {
         // let app = storage.getWSApp();
-        ws.subscribe('acos');
+        ws.subscribe("acos");
 
         //send them the chat history of last X lines
-        if (this.messageHistory.length == 0)
-            return;
+        if (this.messageHistory.length == 0) return;
 
-        let msg = { type: 'chat', payload: this.messageHistory };
+        let msg = { type: "chat", payload: this.messageHistory };
         ws.send(encode(msg), true, false);
     }
 
     onChatReceive(msg) {
         let app = storage.getWSApp();
         console.log("Broadcasting chat message:", msg);
-        let channel = 'acos';
+        let channel = "acos";
         if (msg.room_slug) {
             channel = msg.room_slug;
         }
@@ -60,19 +61,13 @@ class ChatManager {
     }
 
     async onChatSend(ws, action) {
+        if (!ws.user || !ws.user.displayname) return null;
 
-        if (!ws.user || !ws.user.displayname)
-            return null;
+        if (ws.loggedIn == "LURKER") return null;
 
-        if (ws.loggedIn == 'LURKER')
-            return null;
+        if (!action.payload) return null;
 
-        if (!action.payload)
-            return null;
-
-        if (!action.payload.message || typeof action.payload.message !== 'string')
-            return null;
-
+        if (!action.payload.message || typeof action.payload.message !== "string") return null;
 
         if (urlChecker.test(action.payload.message)) {
             console.warn("Found URL in message: ", action.payload.message);
@@ -82,13 +77,20 @@ class ChatManager {
         let displayname = ws.user.displayname;
         let game_slug = action.payload.game_slug || undefined;
         let room_slug = action.payload.room_slug || undefined;
-        let message = (action.payload.message);
+        let message = action.payload.message;
         message = message.substring(0, 120);
         let icon = undefined;
         let portraitid = ws.user.portraitid;
         let countrycode = ws.user.countrycode;
 
-        let payload = { displayname, portraitid, countrycode, room_slug, message, timestamp: (new Date).getTime(), };
+        let payload = {
+            displayname,
+            portraitid,
+            countrycode,
+            room_slug,
+            message,
+            timestamp: new Date().getTime(),
+        };
 
         // if (game_slug) {
         //     let game = await storage.getGameInfo(game_slug);
@@ -99,25 +101,24 @@ class ChatManager {
         //     }
         // }
 
-
-        let response = { type: 'chat', payload }
-        mq.publish('chat', 'chat', response);
+        let response = { type: "chat", payload };
+        mq.publish("chat", "chat", response);
 
         //don't save game room chat
-        if (room_slug)
-            return null;
-
+        if (room_slug) return null;
 
         //save chat history for main lobby
         this.messageHistory.push(payload);
 
         if (this.messageHistory.length > MAX_CHAT_HISTORY) {
-            this.messageHistory = this.messageHistory.slice(this.messageHistory.length - MAX_CHAT_HISTORY, this.messageHistory.length);
+            this.messageHistory = this.messageHistory.slice(
+                this.messageHistory.length - MAX_CHAT_HISTORY,
+                this.messageHistory.length
+            );
         }
 
         return null;
     }
-
 }
 
 module.exports = new ChatManager();

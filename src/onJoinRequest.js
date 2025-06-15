@@ -10,13 +10,11 @@ class JoinAction {
             if (!gamestate?.room?.events?.join) return false;
 
             let ids = gamestate.room?.events.join;
+            if (!Array.isArray(ids)) ids = [ids];
             for (const shortid of ids) {
                 let ws = storage.getUser(shortid);
                 if (!ws) {
-                    console.error(
-                        "[onJoinResponse] missing websocket for: ",
-                        shortid
-                    );
+                    console.error("[onJoinResponse] missing websocket for: ", shortid);
                     return false;
                 }
 
@@ -32,9 +30,7 @@ class JoinAction {
 
     async onJoined(ws, room_slug, roomState) {
         let shortid = ws.user.shortid;
-        roomState =
-            roomState ||
-            (await storage.getRoomState(room_slug, ws.user.shortid));
+        roomState = roomState || (await storage.getRoomState(room_slug, ws.user.shortid));
 
         if (roomState) {
             ws.subscribe(room_slug);
@@ -56,11 +52,7 @@ class JoinAction {
             ws.send(encode(msg), true, false);
             return true;
         } else {
-            console.error(
-                "[onJoined] Missing roomState for join response: ",
-                shortid,
-                room_slug
-            );
+            console.error("[onJoined] Missing roomState for join response: ", shortid, room_slug);
             this.sendResponse(ws, "notexist", room_slug);
             //await r.removePlayerRoom(ws.user.shortid, room_slug);
             let meta = await storage.getRoomMeta(room_slug);
@@ -196,6 +188,8 @@ class JoinAction {
     async createGameAndJoinSinglePlayer(ws, queue) {
         let shortid = ws.user.shortid;
         let displayname = ws.user.displayname;
+        let countrycode = ws.user.countrycode;
+        let portraitid = ws.user.portraitid;
         let game_slug = queue.game_slug;
         let mode = queue.mode;
 
@@ -205,19 +199,14 @@ class JoinAction {
 
         let msg = {
             type: "join",
-            user: { shortid: shortid, displayname },
+            user: { shortid: shortid, displayname, countrycode, portraitid },
             room_slug,
         };
 
         let actions = [msg];
 
         // this.onLeaveQueue(ws);
-        await this.sendCreateGameRequest(
-            game_slug,
-            room_slug,
-            actions,
-            shortid
-        );
+        await this.sendCreateGameRequest(game_slug, room_slug, actions, shortid);
     }
 
     async sendCreateGameRequest(game_slug, room_slug, actions, shortid) {
@@ -259,14 +248,9 @@ class JoinAction {
 
         let activeRooms = [];
 
-        console.log(
-            "User " + ws.user.shortid + " has " + rooms.length + " rooms."
-        );
+        console.log("User " + ws.user.shortid + " has " + rooms.length + " rooms.");
         for (var i = 0; i < rooms.length; i++) {
-            let roomState = await storage.getRoomState(
-                rooms[i].room_slug,
-                ws.user.shortid
-            );
+            let roomState = await storage.getRoomState(rooms[i].room_slug, ws.user.shortid);
             if (
                 !roomState ||
                 roomState?.room?.events?.gameover ||
