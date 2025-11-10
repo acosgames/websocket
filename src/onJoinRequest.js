@@ -1,8 +1,8 @@
 const storage = require("./storage");
 const { encode } = require("acos-json-encoder");
-const rabbitmq = require("shared/services/rabbitmq");
-const r = require("shared/services/room");
-const room = require("shared/services/room");
+const rabbitmq = require('shared/services/rabbitmq');
+const r = require('shared/services/room');
+const room = require('shared/services/room');
 
 class JoinAction {
     async onJoinResponse(room_slug, gamestate) {

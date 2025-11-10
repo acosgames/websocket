@@ -1,15 +1,15 @@
 const { encode, createDefaultDict } = require("acos-json-encoder");
-let ACOSDictionary = require("shared/model/acos-dictionary.json");
+let ACOSDictionary = require('shared/model/acos-dictionary.json');
 createDefaultDict(ACOSDictionary);
 const storage = require("./storage");
 
-const mq = require("shared/services/rabbitmq");
-const redis = require("shared/services/redis");
+const mq = require('shared/services/rabbitmq');
+const redis = require('shared/services/redis');
 const JoinAction = require("./onJoinRequest");
-const profiler = require("shared/util/profiler");
+const profiler = require('shared/util/profiler');
 const delta = require("acos-json-delta");
-const r = require("shared/services/room");
-const person = require("shared/services/person");
+const r = require('shared/services/room');
+const person = require('shared/services/person');
 // const person = new PersonService();
 
 class RoomUpdate {

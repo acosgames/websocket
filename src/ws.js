@@ -3,20 +3,20 @@ const uws = UWSjs.App();
 const events = require("events");
 const auth = require("./authentication");
 const JoinAction = require("./onJoinRequest");
-const InstanceLocalService = require("shared/services/instancelocal");
+const InstanceLocalService = require('shared/services/instancelocal');
 const local = new InstanceLocalService();
 
-const { GeneralError } = require("shared/util/errorhandler");
-const credutil = require("shared/util/credentials");
-const { getLocalAddr } = require("shared/util/address");
+const { GeneralError } = require('shared/util/errorhandler');
+const credutil = require('shared/util/credentials');
+const { getLocalAddr } = require('shared/util/address');
 
 const Action = require("./onAction");
 const RoomUpdate = require("./onRoomUpdate");
 
 const storage = require("./storage");
 
-const redis = require("shared/services/redis");
-const rabbitmq = require("shared/services/rabbitmq");
+const redis = require('shared/services/redis');
+const rabbitmq = require('shared/services/rabbitmq');
 const { encode } = require("acos-json-encoder");
 const ChatManager = require("./ChatManager");
 

@@ -1,8 +1,8 @@
 const { v4: uuidv4 } = require("uuid");
 const cookie = require("cookie");
-const persons = require("shared/services/person");
+const persons = require('shared/services/person');
 // const persons = new PersonService();
-const credutil = require("shared/util/credentials");
+const credutil = require('shared/util/credentials');
 
 //use this class to implement a fancy authentication
 class Authentication {

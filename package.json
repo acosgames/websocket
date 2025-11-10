@@ -6,7 +6,7 @@
     "scripts": {
         "start": "node index.js",
         "dev": "pm2 start index.js --name websocket --node-args=\"--inspect=10004 --trace-warnings\" --watch \". ../shared\" --ignore-watch \"sessions public package.json node_modules\"",
-        "installws": "npm install uNetworking/uWebSockets.js#v20.52.0",
+        "installws": "npm install github:uNetworking/uWebSockets.js#v20.52.0",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "author": "",

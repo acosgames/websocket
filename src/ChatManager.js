@@ -1,9 +1,9 @@
 const { encode, createDefaultDict } = require("acos-json-encoder");
-let ACOSDictionary = require("shared/model/acos-dictionary.json");
+let ACOSDictionary = require('shared/model/acos-dictionary.json');
 createDefaultDict(ACOSDictionary);
 
 const storage = require("./storage");
-const mq = require("shared/services/rabbitmq");
+const mq = require('shared/services/rabbitmq');
 
 var Filter = require("bad-words"),
     filter = new Filter();

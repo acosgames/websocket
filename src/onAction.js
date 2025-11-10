@@ -7,9 +7,9 @@ const ChatManager = require("./ChatManager");
 
 const { decode } = require("acos-json-encoder");
 
-const mq = require("shared/services/rabbitmq");
+const mq = require('shared/services/rabbitmq');
 const storage = require("./storage");
-const profiler = require("shared/util/profiler");
+const profiler = require('shared/util/profiler');
 
 const PublicAction = require("./PublicAction");
 

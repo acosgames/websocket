@@ -1,7 +1,7 @@
 const storage = require("../storage");
 const { encode } = require("acos-json-encoder");
-const rabbitmq = require("shared/services/rabbitmq");
-const r = require("shared/services/room");
+const rabbitmq = require('shared/services/rabbitmq');
+const r = require('shared/services/room');
 
 function cloneObj(obj) {
     if (typeof obj === "object") return JSON.parse(JSON.stringify(obj));

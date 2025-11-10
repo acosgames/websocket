@@ -1,5 +1,5 @@
-const cache = require("shared/services/cache");
-const r = require("shared/services/room");
+const cache = require('shared/services/cache');
+const r = require('shared/services/room');
 
 const delta = require("acos-json-delta");
 
