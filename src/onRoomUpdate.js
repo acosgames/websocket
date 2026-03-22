@@ -155,7 +155,10 @@ class RoomUpdate {
     }
 
     async onRoomUpdate(msg) {
-        // profiler.StartTime('onRoomUpdate');
+        
+        profiler.EndTime("ActionUpdateLoop");
+        profiler.StartTime('onRoomUpdate');
+        console.log("Game Updated Received: ", (new Date()).getTime());
         let room_slug = msg.room_slug;
         if (!room_slug) return true;
 
@@ -251,8 +254,7 @@ class RoomUpdate {
                 this.killGameRoom({ room_slug });
             }
             // }, 200)
-
-            profiler.EndTime("ActionUpdateLoop");
+            profiler.EndTime('onRoomUpdate');
 
             return true;
         } catch (e) {
