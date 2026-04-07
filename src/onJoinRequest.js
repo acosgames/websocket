@@ -1,8 +1,8 @@
 const storage = require("./storage");
 const { encode } = require("acos-json-encoder");
-const rabbitmq = require('shared/services/rabbitmq');
-const r = require('shared/services/room');
-const room = require('shared/services/room');
+const rabbitmq = require('shared/services/rabbitmq.js');
+const r = require('shared/services/room.js');
+const room = require('shared/services/room.js');
 
 class JoinAction {
     async onJoinResponse(room_slug, gamestate) {
@@ -75,10 +75,10 @@ class JoinAction {
 
         try {
             let captain = ws.user.shortid;
-            let teamid = action?.payload?.teamid;
+            let partyid = action?.payload?.partyid;
             let queues = action?.payload?.queues;
             let owner = action?.payload?.owner;
-            let players = await this.generateQueuePlayers(ws, teamid);
+            let players = await this.generateQueuePlayers(ws, partyid);
 
             //check if game is single player or game has space for the amount of players
             let approvedQueues = await this.validateQueues(ws, players, queues);
@@ -86,7 +86,7 @@ class JoinAction {
 
             let msg = {
                 captain,
-                teamid,
+                partyid,
                 players,
                 queues: approvedQueues,
                 owner,
@@ -114,10 +114,10 @@ class JoinAction {
 
         try {
             let captain = ws.user.shortid;
-            let teamid = action?.payload?.teamid;
+            let partyid = action?.payload?.partyid;
             let queues = action?.payload?.queues;
             let owner = action?.payload?.owner;
-            let players = await this.generateQueuePlayers(ws, teamid);
+            let players = await this.generateQueuePlayers(ws, partyid);
 
             //check if game is single player or game has space for the amount of players
             let approvedQueues = await this.validateQueues(ws, players, queues);
@@ -125,7 +125,7 @@ class JoinAction {
 
             let msg = {
                 captain,
-                teamid,
+                partyid,
                 players,
                 queues: approvedQueues,
                 owner,
@@ -168,8 +168,8 @@ class JoinAction {
             let gameinfo = await storage.getGameInfo(queue.game_slug);
             let min = gameinfo.minplayers;
             let max = gameinfo.maxplayers;
-            queue.preview_image = gameinfo.preview_images;
-            queue.name = gameinfo.name;
+            // queue.preview_image = gameinfo.preview_images;
+            // queue.name = gameinfo.name;
 
             if (players.length > min) {
                 continue;

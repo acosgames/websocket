@@ -1,7 +1,7 @@
 const storage = require("../storage");
 const { encode } = require("acos-json-encoder");
-const rabbitmq = require('shared/services/rabbitmq');
-const r = require('shared/services/room');
+const rabbitmq = require('shared/services/rabbitmq.js');
+const r = require('shared/services/room.js');
 
 function cloneObj(obj) {
     if (typeof obj === "object") return JSON.parse(JSON.stringify(obj));
@@ -72,12 +72,12 @@ class JoinAction {
 
         try {
             let captain = ws.user.shortid;
-            let teamid = action?.payload?.teamid;
+            let partyid = action?.payload?.partyid;
             let queues = action?.payload?.queues;
             let owner = action?.payload?.owner;
             let players = null;
-            if (teamid) {
-                let team = await storage.getParty(teamid);
+            if (partyid) {
+                let team = await storage.getParty(partyid);
 
                 if (captain != team.captain) {
                     return null;
@@ -112,7 +112,7 @@ class JoinAction {
 
             let msg = {
                 captain,
-                teamid,
+                partyid,
                 players,
                 queues: approvedQueues,
                 owner,
@@ -228,18 +228,18 @@ class JoinAction {
 
         try {
             let captain = ws.user.shortid;
-            let teamid = action?.payload?.teamid;
+            let partyid = action?.payload?.partyid;
             let queues = action?.payload?.queues;
             let owner = action?.payload?.owner;
             let players = null;
-            if (teamid) {
-                let team = await storage.getParty(teamid);
+            if (partyid) {
+                let party = await storage.getParty(partyid);
 
-                if (captain != team.captain) {
+                if (captain != party.captain) {
                     return null;
                 }
 
-                players = team.players;
+                players = party.players;
             } else {
                 players = [
                     { shortid: captain, displayname: ws.user.displayname },
@@ -268,7 +268,7 @@ class JoinAction {
 
             let msg = {
                 captain,
-                teamid,
+                partyid,
                 players,
                 queues: approvedQueues,
                 owner,

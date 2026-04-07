@@ -1,5 +1,5 @@
 const axios = require('axios');
-const credutil = require('shared/util/credentials');
+const credutil = require('shared/util/credentials.js');
 
 const WSNode = require('./src/ws');
 

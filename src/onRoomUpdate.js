@@ -3,13 +3,13 @@ let ACOSDictionary = require('shared/model/acos-dictionary.json');
 createDefaultDict(ACOSDictionary);
 const storage = require("./storage");
 
-const mq = require('shared/services/rabbitmq');
-const redis = require('shared/services/redis');
+const mq = require('shared/services/rabbitmq.js');
+const redis = require('shared/services/redis.js');
 const JoinAction = require("./onJoinRequest");
-const profiler = require('shared/util/profiler');
+const profiler = require('shared/util/profiler.js');
 const delta = require("acos-json-delta");
-const r = require('shared/services/room');
-const person = require('shared/services/person');
+const r = require('shared/services/room.js');
+const person = require('shared/services/person.js');
 // const person = new PersonService();
 
 class RoomUpdate {
@@ -128,6 +128,14 @@ class RoomUpdate {
             if (party.players) {
                 msg.type = "addedQueue";
                 let encoded = encode(msg);
+
+                if( msg.queues ) {
+                    for (const queue of msg.queues) {
+                        let gameinfo = await storage.getGameInfo(queue.game_slug);
+                        queue.preview_image = gameinfo.preview_images;
+                        queue.name = gameinfo.name;
+                    }
+                }
                 for (const player of party.players) {
                     let ws = storage.getUser(player.shortid);
                     if (!ws) continue;

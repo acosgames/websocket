@@ -1,5 +1,5 @@
-const cache = require('shared/services/cache');
-const r = require('shared/services/room');
+const cache = require('shared/services/cache.js');
+const r = require('shared/services/room.js');
 
 const delta = require("acos-json-delta");
 
@@ -31,17 +31,17 @@ class Storage {
         return this.queueStats;
     }
 
-    async setParty(teamid, partyinfo) {
-        cache.set("team/" + teamid, partyinfo, 120);
+    async setParty(partyid, partyinfo) {
+        cache.set("party/" + partyid, partyinfo, 120);
     }
 
-    async getParty(teamid) {
-        let partyinfo = await cache.get("team/" + teamid);
+    async getParty(partyid) {
+        let partyinfo = await cache.get("party/" + partyid);
         return partyinfo;
     }
 
-    async deleteTeam(teamid) {
-        await cache.del("team/" + teamid);
+    async deleteTeam(partyid) {
+        await cache.del("party/" + partyid);
     }
 
     async getRoomMeta(room_slug) {

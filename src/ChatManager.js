@@ -3,7 +3,7 @@ let ACOSDictionary = require('shared/model/acos-dictionary.json');
 createDefaultDict(ACOSDictionary);
 
 const storage = require("./storage");
-const mq = require('shared/services/rabbitmq');
+const mq = require('shared/services/rabbitmq.js');
 
 var Filter = require("bad-words"),
     filter = new Filter();
