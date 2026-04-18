@@ -2,10 +2,13 @@
     "name": "websocket",
     "version": "1.0.0",
     "description": "",
-    "main": "index.js",
+    "type": "module",
+    "main": "dist/index.js",
     "scripts": {
-        "start": "node index.js",
-        "dev": "pm2 start index.js --name websocket --node-args=\"--inspect=10004 --trace-warnings\" --watch \". ../shared\" --ignore-watch \"sessions public package.json node_modules\"",
+        "start": "concurrently -n tsc,node \"npm:build:watch\" \"npm:start:watch\"",
+        "start:watch": "node --inspect=9941 --watch --enable-source-maps --watch-preserve-output dist/index.js",
+        "build": "tsc",
+        "build:watch": "tsc --watch --preserveWatchOutput",
         "installws": "npm install github:uNetworking/uWebSockets.js#v20.52.0",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
@@ -13,11 +16,11 @@
     "license": "ISC",
     "dependencies": {
         "acos-json-delta": "^1.0.4",
-        "acos-json-encoder": "^1.0.15",
+        "acos-json-encoder": "^2.0.13",
         "axios": "^1.7.9",
         "bad-words": "^3.0.4",
         "bson": "^4.2.3",
-        "cookie": "^1.0.2",
+        "cookie": "^1.1.1",
         "priorityqueuejs": "^2.0.0",
         "pson": "^2.0.0",
         "re2": "^1.17.7",
@@ -26,5 +29,12 @@
         "uuid": "^8.3.2",
         "uWebSockets.js": "github:uNetworking/uWebSockets.js#v20.52.0",
         "websocket": "^1.0.35"
+    },
+    "devDependencies": {
+        "@types/cookie": "^0.6.0",
+        "@types/node": "^20.19.39",
+        "@types/uuid": "^9.0.8",
+        "concurrently": "^9.2.1",
+        "typescript": "^5.9.3"
     }
 }
