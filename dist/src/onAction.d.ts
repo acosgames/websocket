@@ -6,7 +6,8 @@ declare class Action {
     onClientAction(ws: any, message: any, isBinary: boolean): Promise<void>;
     gameAction(ws: any, action: any): Promise<any>;
     validateUser(ws: any, roomState: any, action: any): boolean;
-    validateNextUser(userid: string, nextid: string | string[], teams: any): boolean;
+    validateNextUser(userid: number, roomState: any): boolean;
+    validateNextTeam(gamestate: any, teamid: number): boolean;
     forwardAction(msg: any): Promise<void>;
 }
 declare const _default: Action;

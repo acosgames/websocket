@@ -1,5 +1,6 @@
+import { GameStateReader } from '@acosgames/framework';
 declare class JoinAction {
-    onJoinResponse(room_slug: string, gamestate: any): Promise<boolean>;
+    onJoinResponse(room_slug: string, gamestate: GameStateReader): Promise<boolean>;
     onJoined(ws: any, room_slug: string, roomState?: any): Promise<boolean>;
     sendResponse(ws: any, type: string, room_slug: string): void;
     onJoinGame(ws: any, action: any): Promise<null>;

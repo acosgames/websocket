@@ -9,6 +9,7 @@ import JoinAction from './onJoinRequest.js';
 import profiler from 'shared/util/profiler.js';
 import r from 'shared/services/room.js';
 import person from 'shared/services/person.js';
+import { gs, GameStatus } from '@acosgames/framework';
 
 class RoomUpdate {
     constructor() {
@@ -188,23 +189,27 @@ class RoomUpdate {
             if (previousGamestate?.room?.events)
                 previousGamestate.room.events = null;
 
-            let gamestate = merge(previousGamestate, msg.payload);
-            if (!gamestate) {
+            let mergedState = merge(previousGamestate, msg.payload);
+            if (!mergedState) {
                 this.killGameRoom({ room_slug });
                 return true;
             }
 
+            let gamestate = gs(mergedState);
+
             let copy = JSON.parse(JSON.stringify(msg));
             let hiddenState = hidden(copy.payload.state);
             let hiddenPlayers = hidden(copy.payload.players);
+            let hiddenRoom = hidden(copy.payload.room);
 
+            let gameroom = gamestate.room();
             let isGameover =
-                gamestate?.room?.events &&
-                (gamestate.room?.events.gameover ||
-                    gamestate.room?.events.gamecancelled ||
-                    gamestate.room?.events.gameerror);
+                gameroom?.events &&
+                (gameroom?.status == GameStatus.gameover ||
+                    // gameroom?.status == GameStatus.gamecancelled ||
+                    gameroom?.status == GameStatus.gameerror);
 
-            storage.setRoomState(room_slug, gamestate);
+            storage.setRoomState(room_slug, gamestate.raw());
 
             if (msg.type === "join") {
                 await JoinAction.onJoinResponse(room_slug, gamestate);

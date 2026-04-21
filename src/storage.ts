@@ -1,6 +1,8 @@
 import cache from 'shared/services/cache.js';
 import r from 'shared/services/room.js';
-import delta from 'acos-json-delta';
+// import delta from 'acos-json-delta';
+import { gs } from '@acosgames/framework';
+import { hidden } from 'acos-json-encoder';
 
 class Storage {
     users: Record<string, any>;
@@ -58,16 +60,18 @@ class Storage {
             let state = await cache.get(room_slug);
             let dlta = JSON.parse(JSON.stringify(state));
             if (dlta && shortid) {
+                let gamestate = gs(dlta);
+                let playerid = gamestate.room().playerIndex(shortid);
                 let hiddenState = null;
-                if (dlta.state) hiddenState = delta.hidden(dlta.state);
-                let hiddenPlayers = delta.hidden(dlta.players) || {};
+                if (dlta.state) hiddenState = hidden(dlta.state);
+                let hiddenPlayers = hidden(dlta.players) || {};
 
                 if (hiddenPlayers && dlta?.players) {
-                    if (shortid in hiddenPlayers) {
-                        dlta.players[shortid] = Object.assign(
+                    if (hiddenPlayers[playerid]) {
+                        dlta.players[playerid] = Object.assign(
                             {},
-                            dlta.players[shortid] || {},
-                            hiddenPlayers[shortid] || {}
+                            dlta.players[playerid] || {},
+                            hiddenPlayers[playerid] || {}
                         );
                     }
                 }
@@ -99,11 +103,11 @@ class Storage {
         if (!roomMeta) return null;
         let roomState = await this.getRoomState(room_slug);
         if (!roomState || !roomState.players) return null;
-        let playerList = Object.keys(roomState.players);
-        if (!playerList) return null;
+        // let playerList = Object.keys(roomState.players);
+        if (!roomState.players) return null;
 
         return {
-            count: playerList.length,
+            count: roomState.players.length,
             min: roomMeta.minplayers,
             max: roomMeta.maxplayers,
         };
@@ -151,10 +155,14 @@ class Storage {
         try {
             if (!meta?.room_slug) return;
             let roomState = await this.getRoomState(meta.room_slug);
-            let players = roomState?.players;
-            if (players) {
-                for (var shortid in players) {
-                    cache.del(`rooms/${shortid}`);
+
+            if( roomState ) {
+                let gamestate = gs(roomState);
+                let players = gamestate?.room().playerMap;
+                if (players) {
+                    for (var shortid in players) {
+                        cache.del(`rooms/${shortid}`);
+                    }
                 }
             }
 

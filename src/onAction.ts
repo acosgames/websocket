@@ -8,6 +8,7 @@ import mq from 'shared/services/rabbitmq.js';
 import storage from './storage.js';
 import profiler from 'shared/util/profiler.js';
 import PublicAction from './PublicAction.js';
+import { GameStatus, gs } from '@acosgames/framework';
 
 class Action {
     publicActions: Record<string, Function>;
@@ -96,17 +97,21 @@ class Action {
         let roomState = await storage.getRoomState(action.room_slug);
         if (!roomState) return;
 
+        let gamestate = gs(roomState);
+        let gameroom = gamestate.room();
         if (
-            roomState?.room?.events?.gameover ||
-            roomState?.room?.events?.gamecancelled ||
-            roomState?.room?.events?.gameerror
+            gameroom.status === GameStatus.gameover ||
+            gameroom.status === GameStatus.gamecancelled ||
+            gameroom.status === GameStatus.gameerror 
         )
             return;
+
+        action.user.id = gameroom.playerIndex(action.user.shortid);
 
         let requestAction = this.actions[action.type];
         if (requestAction)
             action = await requestAction(ws, action);
-        else if (action.type === "gameaction")
+        else //if (action.type === "gameaction")
             action = await this.gameAction(ws, action);
 
         if (!action) return;
@@ -136,12 +141,10 @@ class Action {
             return true;
         }
 
-        let next_id = roomState?.room?.next_id;
-        if (!next_id) return false;
         let shortid = action.user.shortid;
         let teams = roomState?.teams;
 
-        let passed = this.validateNextUser(shortid, next_id, teams);
+        let passed = this.validateNextUser(action.user.id, roomState);
         if (passed) {
             return true;
         }
@@ -150,39 +153,29 @@ class Action {
         return false;
     }
 
-    validateNextUser(userid: string, nextid: string | string[], teams: any): boolean {
-        if (typeof nextid === "string") {
-            if (nextid === "*") return true;
 
-            if (nextid === userid) return true;
-
-            if (!teams || !teams[nextid] || !teams[nextid].players)
-                return false;
-
-            if (
-                Array.isArray(teams[nextid].players) &&
-                teams[nextid].players.includes(userid)
-            ) {
-                return true;
-            }
-        } else if (Array.isArray(nextid)) {
-            if (nextid.includes(userid)) return true;
-
-            if (!teams) return false;
-
-            for (var i = 0; i < nextid.length; i++) {
-                let team_slug = nextid[i];
-                if (
-                    Array.isArray(teams[team_slug].players) &&
-                    teams[team_slug].players.includes(userid)
-                ) {
-                    return true;
-                }
-            }
-        }
-
+    validateNextUser(userid: number, roomState: any): boolean {
+        let gamestate = gs(roomState);
+        let gameroom = gamestate.room();
+        let next = gameroom.nextPlayer;
+        if (Array.isArray(next) && next.includes(userid)) return true;
+        let player = gamestate.player(userid);
+        if (!player) return false;
+        if (next === userid) return true;
+        if (this.validateNextTeam(gamestate, player.teamid)) return true;
         return false;
     }
+
+    validateNextTeam(gamestate: any, teamid: number): boolean {
+        const gameroom = gamestate.room();
+        let next = gameroom.nextTeam;
+        if (Array.isArray(next) && next.includes(teamid)) return true;
+        let player = gamestate.player(teamid);
+        if (!player) return false;
+        if (next === teamid) return true;
+        return false;
+    }
+
 
     async forwardAction(msg: any): Promise<void> {
         if (!msg.type) {
@@ -192,7 +185,7 @@ class Action {
 
         let meta = await storage.getRoomMeta(msg.room_slug);
         var game_slug = meta.game_slug;
-        if (!game_slug) return;
+        if (!game_slug) return; 
 
         try {
             console.log("ForwardAction", Date.now());

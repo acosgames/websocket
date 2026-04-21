@@ -1,16 +1,27 @@
+import { GameStateReader, GameStatus, gs } from '@acosgames/framework';
 import storage from './storage.js';
 import { protoEncode } from 'acos-json-encoder';
 import rabbitmq from 'shared/services/rabbitmq.js';
 import r from 'shared/services/room.js';
 
 class JoinAction {
-    async onJoinResponse(room_slug: string, gamestate: any): Promise<boolean> {
+    async onJoinResponse(room_slug: string, gamestate: GameStateReader): Promise<boolean> {
         try {
-            if (!gamestate?.room?.events?.join) return false;
+            // let gstate = gs(gamestate);
+            if (!gamestate) return false;
 
-            let ids = gamestate.room?.events.join;
-            if (!Array.isArray(ids)) ids = [ids];
-            for (const shortid of ids) {
+            let joinEvents = gamestate.eventsByType('join');
+            // joinEvents = (gamestate.room?.events ?? []).filter((e) => e.type === 'join');
+
+            // let ids = joinEvents?.[0]?.payload;
+            // if (!Array.isArray(ids)) ids = [ids];
+            for (const {type, payload} of joinEvents) {
+                let player = gamestate.player(payload); 
+                if (!player) { 
+                    console.error("[onJoinResponse] missing player for: ", payload);
+                    continue;
+                }
+                let shortid = player.shortid;
                 let ws = storage.getUser(shortid);
                 if (!ws) {
                     console.error("[onJoinResponse] missing websocket for: ", shortid);
@@ -249,11 +260,18 @@ class JoinAction {
         console.log("User " + ws.user.shortid + " has " + rooms.length + " rooms.");
         for (var i = 0; i < rooms.length; i++) {
             let roomState = await storage.getRoomState(rooms[i].room_slug, ws.user.shortid);
+            if(!roomState) {
+                console.error("Missing room state for: ", rooms[i].room_slug);
+                storage.cleanupRoom(rooms[i]);
+                continue;
+            }
+            let gamestate = gs(roomState);
+            let gameroom = gamestate.room();
             if (
                 !roomState ||
-                roomState?.room?.events?.gameover ||
-                roomState?.room?.events?.gamecancelled ||
-                roomState?.room?.events?.gameerror
+                gameroom.status === GameStatus.gameover ||
+                gameroom.status === GameStatus.gamecancelled ||
+                gameroom.status === GameStatus.gameerror
             ) {
                 storage.cleanupRoom(rooms[i]);
                 continue;
