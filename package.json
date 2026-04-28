@@ -15,7 +15,7 @@
     "author": "",
     "license": "ISC",
     "dependencies": {
-        "@acosgames/framework": "^1.0.8",
+        "@acosgames/framework": "^1.0.11",
         "acos-json-delta": "^1.0.4",
         "acos-json-encoder": "^2.0.15",
         "axios": "^1.7.9",

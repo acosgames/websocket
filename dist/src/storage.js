@@ -44,8 +44,8 @@ class Storage {
             let state = await cache.get(room_slug);
             let dlta = JSON.parse(JSON.stringify(state));
             if (dlta && shortid) {
-                let gamestate = gs(dlta);
-                let playerid = gamestate.room().playerIndex(shortid);
+                let game = gs(dlta);
+                let playerid = game.playerIndex(shortid);
                 let hiddenState = null;
                 if (dlta.state)
                     hiddenState = hidden(dlta.state);
@@ -131,8 +131,8 @@ class Storage {
                 return;
             let roomState = await this.getRoomState(meta.room_slug);
             if (roomState) {
-                let gamestate = gs(roomState);
-                let players = gamestate?.room().playerMap;
+                let game = gs(roomState);
+                let players = game.playerMap;
                 if (players) {
                     for (var shortid in players) {
                         cache.del(`rooms/${shortid}`);

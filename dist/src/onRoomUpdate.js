@@ -150,19 +150,18 @@ class RoomUpdate {
                 this.killGameRoom({ room_slug });
                 return true;
             }
-            let gamestate = gs(mergedState);
+            let game = gs(mergedState);
             let copy = JSON.parse(JSON.stringify(msg));
             let hiddenState = hidden(copy.payload.state);
             let hiddenPlayers = hidden(copy.payload.players);
             let hiddenRoom = hidden(copy.payload.room);
-            let gameroom = gamestate.room();
-            let isGameover = gameroom?.events &&
-                (gameroom?.status == GameStatus.gameover ||
-                    // gameroom?.status == GameStatus.gamecancelled ||
-                    gameroom?.status == GameStatus.gameerror);
-            storage.setRoomState(room_slug, gamestate.raw());
+            let isGameover = game?.events &&
+                (game?.status == GameStatus.gameover ||
+                    // game?.status == GameStatus.gamecancelled ||
+                    game?.status == GameStatus.gameerror);
+            storage.setRoomState(room_slug, game.raw());
             if (msg.type === "join") {
-                await JoinAction.onJoinResponse(room_slug, gamestate);
+                await JoinAction.onJoinResponse(room_slug, game);
             }
             if (hiddenPlayers)
                 for (var shortid in hiddenPlayers) {
@@ -179,8 +178,8 @@ class RoomUpdate {
                     let encodedPrivate = protoEncode(privateMsg);
                     ws.send(encodedPrivate, true, false);
                 }
-            if (msg.type === "gameover" && gamestate?.room?.events?.gameover) {
-                this.processAllPlayerExperience(gamestate);
+            if (msg.type === "gameover" && game.eventsByType("gameover").length > 0) {
+                this.processAllPlayerExperience(game);
             }
             let app = storage.getWSApp();
             let encoded = protoEncode({ type: "gameupdate", payload: copy });
@@ -203,27 +202,25 @@ class RoomUpdate {
         }
         return false;
     }
-    processAllPlayerExperience(gamestate) {
-        if (!gamestate?.players)
+    processAllPlayerExperience(game) {
+        let players = game?.players();
+        if (!players)
             return;
-        for (let shortid in gamestate.players) {
-            this.processPlayerExperience(gamestate, shortid);
+        for (let player of players) {
+            this.processPlayerExperience(game, player);
         }
     }
-    processPlayerExperience(gamestate, shortid) {
-        let player = gamestate.players[shortid];
-        let ws = storage.getUser(shortid);
+    processPlayerExperience(game, player) {
+        let ws = storage.getUser(player.shortid);
         if (!ws)
             return;
-        let room = gamestate?.room;
-        let startTime = room?.starttime || 0;
-        let endTime = room?.endtime || startTime;
+        let startTime = game?.startTime || 0;
+        let endTime = game?.endTime || startTime;
         let playTime = (endTime - startTime) / 1000;
         playTime = Math.ceil(playTime);
         let bonusTime = playTime / 10;
-        let playerList = Object.keys(gamestate?.players);
-        let highestScore = playerList.reduce((highest, sid) => {
-            let p = gamestate.players[sid];
+        let playerList = game.players();
+        let highestScore = playerList.reduce((highest, p) => {
             if (p.score > highest)
                 highest = p.score;
             return highest;
@@ -232,7 +229,7 @@ class RoomUpdate {
         let highScorePct = player.score / highestScore;
         let scoreXP = Math.ceil(highScorePct * maxScoreXP * bonusTime);
         let winXP = 0;
-        if (player.teamid && gamestate?.teams[player.teamid]?.rank === 1) {
+        if (player.teamid && game?.teams()[player.teamid]?.rank === 1) {
             winXP = Math.ceil(5 * bonusTime);
         }
         let experience = [];
@@ -256,7 +253,7 @@ class RoomUpdate {
         let xpMessage = {
             type: "xp",
             payload: {
-                room_slug: room?.room_slug || "",
+                room_slug: game?.slug || "",
                 experience,
                 previousPoints,
                 previousLevel,
@@ -265,7 +262,7 @@ class RoomUpdate {
             },
         };
         let user = {
-            shortid,
+            shortid: player.shortid,
             level: newLevel + newPoints / 1000,
         };
         this.updateUser(user);

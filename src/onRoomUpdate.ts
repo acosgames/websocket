@@ -9,7 +9,7 @@ import JoinAction from './onJoinRequest.js';
 import profiler from 'shared/util/profiler.js';
 import r from 'shared/services/room.js';
 import person from 'shared/services/person.js';
-import { gs, GameStatus } from '@acosgames/framework';
+import { gs, GameStatus, GameStateReader } from '@acosgames/framework';
 
 class RoomUpdate {
     constructor() {
@@ -195,24 +195,23 @@ class RoomUpdate {
                 return true;
             }
 
-            let gamestate = gs(mergedState);
+            let game = gs(mergedState);
 
             let copy = JSON.parse(JSON.stringify(msg));
             let hiddenState = hidden(copy.payload.state);
             let hiddenPlayers = hidden(copy.payload.players);
             let hiddenRoom = hidden(copy.payload.room);
 
-            let gameroom = gamestate.room();
             let isGameover =
-                gameroom?.events &&
-                (gameroom?.status == GameStatus.gameover ||
-                    // gameroom?.status == GameStatus.gamecancelled ||
-                    gameroom?.status == GameStatus.gameerror);
+                game?.events &&
+                (game?.status == GameStatus.gameover ||
+                    // game?.status == GameStatus.gamecancelled ||
+                    game?.status == GameStatus.gameerror);
 
-            storage.setRoomState(room_slug, gamestate.raw());
+            storage.setRoomState(room_slug, game.raw());
 
             if (msg.type === "join") {
-                await JoinAction.onJoinResponse(room_slug, gamestate);
+                await JoinAction.onJoinResponse(room_slug, game);
             }
 
             if (hiddenPlayers)
@@ -231,8 +230,8 @@ class RoomUpdate {
                     ws.send(encodedPrivate, true, false);
                 }
 
-            if (msg.type === "gameover" && gamestate?.room?.events?.gameover) {
-                this.processAllPlayerExperience(gamestate);
+            if (msg.type === "gameover" && game.eventsByType("gameover").length > 0) {
+                this.processAllPlayerExperience(game);
             }
 
             let app = storage.getWSApp();
@@ -258,30 +257,28 @@ class RoomUpdate {
         return false;
     }
 
-    processAllPlayerExperience(gamestate: any): void {
-        if (!gamestate?.players) return;
+    processAllPlayerExperience(game: GameStateReader): void {
+        let players = game?.players();
+        if (!players) return;   
 
-        for (let shortid in gamestate.players) {
-            this.processPlayerExperience(gamestate, shortid);
+        for (let player of players) {
+            this.processPlayerExperience(game, player);
         }
     }
 
-    processPlayerExperience(gamestate: any, shortid: string): void {
-        let player = gamestate.players[shortid];
-        let ws = storage.getUser(shortid);
+    processPlayerExperience(game: GameStateReader, player: PlayerReader): void {
+        let ws = storage.getUser(player.shortid);
         if (!ws) return;
 
-        let room = gamestate?.room;
-        let startTime = room?.starttime || 0;
-        let endTime = room?.endtime || startTime;
+        let startTime = game?.startTime || 0;
+        let endTime = game?.endTime || startTime;
         let playTime = (endTime - startTime) / 1000;
         playTime = Math.ceil(playTime);
         let bonusTime = playTime / 10;
 
-        let playerList = Object.keys(gamestate?.players);
+        let playerList = game.players();
         let highestScore =
-            playerList.reduce((highest: number, sid: string) => {
-                let p = gamestate.players[sid];
+            playerList.reduce((highest: number, p: PlayerReader) => {
                 if (p.score > highest) highest = p.score;
                 return highest;
             }, 0) || 1;
@@ -290,7 +287,7 @@ class RoomUpdate {
         let scoreXP = Math.ceil(highScorePct * maxScoreXP * bonusTime);
 
         let winXP = 0;
-        if (player.teamid && gamestate?.teams[player.teamid]?.rank === 1) {
+        if (player.teamid && game?.teams()[player.teamid]?.rank === 1) {
             winXP = Math.ceil(5 * bonusTime);
         }
 
@@ -320,7 +317,7 @@ class RoomUpdate {
         let xpMessage = {
             type: "xp",
             payload: {
-                room_slug: room?.room_slug || "",
+                room_slug: game?.slug || "",
                 experience,
                 previousPoints,
                 previousLevel,
@@ -330,7 +327,7 @@ class RoomUpdate {
         };
 
         let user = {
-            shortid,
+            shortid: player.shortid,
             level: newLevel + newPoints / 1000,
         };
         this.updateUser(user);

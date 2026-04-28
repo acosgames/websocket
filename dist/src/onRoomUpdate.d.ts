@@ -1,3 +1,4 @@
+import { GameStateReader } from '@acosgames/framework';
 declare class RoomUpdate {
     constructor();
     setup(): Promise<void>;
@@ -5,8 +6,8 @@ declare class RoomUpdate {
     onStatsUpdate(msg: any): Promise<void>;
     onQueueUpdate(msg: any): Promise<boolean>;
     onRoomUpdate(msg: any): Promise<boolean>;
-    processAllPlayerExperience(gamestate: any): void;
-    processPlayerExperience(gamestate: any, shortid: string): void;
+    processAllPlayerExperience(game: GameStateReader): void;
+    processPlayerExperience(game: GameStateReader, player: PlayerReader): void;
     updateUser(user: any): Promise<void>;
     killGameRoom(msg: any): Promise<void>;
 }

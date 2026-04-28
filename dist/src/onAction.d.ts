@@ -7,7 +7,7 @@ declare class Action {
     gameAction(ws: any, action: any): Promise<any>;
     validateUser(ws: any, roomState: any, action: any): boolean;
     validateNextUser(userid: number, roomState: any): boolean;
-    validateNextTeam(gamestate: any, teamid: number): boolean;
+    validateNextTeam(game: any, teamid: number): boolean;
     forwardAction(msg: any): Promise<void>;
 }
 declare const _default: Action;

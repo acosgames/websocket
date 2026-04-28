@@ -97,16 +97,15 @@ class Action {
         let roomState = await storage.getRoomState(action.room_slug);
         if (!roomState) return;
 
-        let gamestate = gs(roomState);
-        let gameroom = gamestate.room();
+        let game = gs(roomState);
         if (
-            gameroom.status === GameStatus.gameover ||
-            gameroom.status === GameStatus.gamecancelled ||
-            gameroom.status === GameStatus.gameerror 
+            game.status === GameStatus.gameover ||
+            game.status === GameStatus.gamecancelled ||
+            game.status === GameStatus.gameerror 
         )
             return;
 
-        action.user.id = gameroom.playerIndex(action.user.shortid);
+        action.user.id = game.playerIndex(action.user.shortid);
 
         let requestAction = this.actions[action.type];
         if (requestAction)
@@ -155,22 +154,21 @@ class Action {
 
 
     validateNextUser(userid: number, roomState: any): boolean {
-        let gamestate = gs(roomState);
-        let gameroom = gamestate.room();
-        let next = gameroom.nextPlayer;
+        let game = gs(roomState);
+        let next = game.nextPlayer;
         if (Array.isArray(next) && next.includes(userid)) return true;
-        let player = gamestate.player(userid);
+        let player = game.player(userid);
         if (!player) return false;
         if (next === userid) return true;
-        if (this.validateNextTeam(gamestate, player.teamid)) return true;
+        if (this.validateNextTeam(game, player.teamid)) return true;
         return false;
     }
 
-    validateNextTeam(gamestate: any, teamid: number): boolean {
-        const gameroom = gamestate.room();
-        let next = gameroom.nextTeam;
+    validateNextTeam(game: any, teamid: number): boolean {
+        
+        let next = game.nextTeam;
         if (Array.isArray(next) && next.includes(teamid)) return true;
-        let player = gamestate.player(teamid);
+        let player = game.player(teamid);
         if (!player) return false;
         if (next === teamid) return true;
         return false;

@@ -4,17 +4,17 @@ import { protoEncode } from 'acos-json-encoder';
 import rabbitmq from 'shared/services/rabbitmq.js';
 import r from 'shared/services/room.js';
 class JoinAction {
-    async onJoinResponse(room_slug, gamestate) {
+    async onJoinResponse(room_slug, game) {
         try {
             // let gstate = gs(gamestate);
-            if (!gamestate)
+            if (!game)
                 return false;
-            let joinEvents = gamestate.eventsByType('join');
+            let joinEvents = game.eventsByType('join');
             // joinEvents = (gamestate.room?.events ?? []).filter((e) => e.type === 'join');
             // let ids = joinEvents?.[0]?.payload;
             // if (!Array.isArray(ids)) ids = [ids];
             for (const { type, payload } of joinEvents) {
-                let player = gamestate.player(payload);
+                let player = game.player(payload);
                 if (!player) {
                     console.error("[onJoinResponse] missing player for: ", payload);
                     continue;
@@ -180,6 +180,7 @@ class JoinAction {
         let portraitid = ws.user.portraitid;
         let game_slug = queue.game_slug;
         let mode = queue.mode;
+        let id = -1;
         let room = await r.createRoom(shortid, 0, game_slug, mode, null);
         if (!room || !room.room_slug) {
             console.error("Failed to create room for single player game: ", game_slug);
@@ -188,7 +189,7 @@ class JoinAction {
         let room_slug = room.room_slug;
         let msg = {
             type: "join",
-            user: { shortid, displayname, countrycode, portraitid },
+            user: { id, shortid, displayname, countrycode, portraitid },
             room_slug,
         };
         let actions = [msg];
@@ -235,12 +236,11 @@ class JoinAction {
                 storage.cleanupRoom(rooms[i]);
                 continue;
             }
-            let gamestate = gs(roomState);
-            let gameroom = gamestate.room();
+            let game = gs(roomState);
             if (!roomState ||
-                gameroom.status === GameStatus.gameover ||
-                gameroom.status === GameStatus.gamecancelled ||
-                gameroom.status === GameStatus.gameerror) {
+                game.status === GameStatus.gameover ||
+                game.status === GameStatus.gamecancelled ||
+                game.status === GameStatus.gameerror) {
                 storage.cleanupRoom(rooms[i]);
                 continue;
             }
