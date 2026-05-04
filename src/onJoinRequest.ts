@@ -254,7 +254,7 @@ class JoinAction {
     }
 
     async getPlayerActiveRooms(ws: any): Promise<any> {
-        let rooms = await storage.getPlayerRooms(ws.user.shortid);
+        let rooms = await storage.getPlayerRooms(ws.user.shortid); 
         if (rooms.length === 0) return false;
 
         let activeRooms: any[] = [];
